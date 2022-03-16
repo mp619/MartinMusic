@@ -2,6 +2,7 @@
 #include <U8g2lib.h>
 #include <map>
 #include <STM32FreeRTOS.h>
+#include <ES_CAN.h>
 
 //Constants
   const uint32_t interval = 100; //Display update interval
@@ -39,35 +40,9 @@
                                     {64351799,	68178356,	72232452,	76527617},
                                     {81078186,	85899346,	91007187,	96418756}};
 
- //Key struct
-  struct Key{
-    char letter;
-    bool hash;
-  };
-
   static int32_t phaseAcc = 0;
 
-  //Key map
-  std::map<volatile int,Key> mapofKeys = {
-    {0, {'N', false}},
-    {1, {'C',false}},
-    {2, {'C',true}},
-    {3, {'D',false}},
-    {4, {'D',true}},
-    {5, {'E',false}},
-    {6, {'F',false}},
-    {7, {'F',true}},
-    {8, {'G',false}},
-    {9, {'G',true}},
-    {10, {'A',false}},
-    {11, {'A',true}},
-    {12, {'B',false}}
-  };
-
   const static char* NOTES[13] = { " ","C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-
-  //Global Outgoing Message
-  volatile uint8_t TX_Message[8] = {0};
 
   // Current Step
   volatile int32_t currentStepSize = 0;
@@ -75,9 +50,10 @@
   //keyMatrix
   volatile uint8_t keyArray[7];
   volatile int idxKey;
+
  
-//Global handle
-SemaphoreHandle_t keyArrayMutex;
+  //Global handle
+  SemaphoreHandle_t keyArrayMutex;
 
 
 //Display driver object
@@ -110,8 +86,10 @@ void sampleISR(){
 }
 
 void scanKeysTask(void * pvParameters){
+  uint8_t TX_Message[8] = {0};
   const TickType_t xFrequency = 50/portTICK_PERIOD_MS;
   TickType_t xLastWakeTime = xTaskGetTickCount();
+  
   while (1){
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
     //ReadCol
@@ -130,9 +108,33 @@ void scanKeysTask(void * pvParameters){
         j++;
       }
     }
-    xSemaphoreGive(keyArrayMutex);
-    //Serial.println(keyArray[0]);
-    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+
+  char keyState;
+  uint8_t activeKey = idxKey;
+  uint8_t octave = 4 ;
+
+  if (activeKey == 0){
+      keyState = 'R';
+      activeKey = TX_Message[2];
+      TX_Message[0] = keyState  ;
+      TX_Message[1] = octave    ;
+      TX_Message[2] = activeKey ;
+  }
+  else{
+    keyState = 'P' ; 
+    TX_Message[0] = keyState  ;
+    TX_Message[1] = octave    ;
+    TX_Message[2] = activeKey ;
+  }
+
+  //Sendign CAN frame 
+  CAN_TX(0x123, TX_Message);
+  
+  
+
+  xSemaphoreGive(keyArrayMutex);
+  //Serial.println(keyArray[0]);
+  __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
   }
 }
 
@@ -141,32 +143,42 @@ void displayUpdateTask(void * pvParameters){
   TickType_t xLastWakeTime = xTaskGetTickCount();
   while (1){
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
-    //Serial.print("Hello");
-    //Update display
-    //Serial.println(keyArray[0]);
+
+    uint32_t ID;
+    uint8_t RX_Message[8]={0};
+
+    while (CAN_CheckRXLevel())CAN_RX(ID, RX_Message);
+    
     xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
     u8g2.clearBuffer();         // clear the internal memory
     u8g2.setFont(u8g2_font_ncenB08_tr); // choose a suitable font
-    u8g2.setCursor(2,10);
+    
+    u8g2.drawStr(2,10,"Music Synthesiser!");
+
+    //Activated Keys
+    u8g2.setCursor(2,20);
     u8g2.print(keyArray[0],HEX);
-    u8g2.setCursor(10,10);
+    u8g2.setCursor(10,20);
     u8g2.print(keyArray[1],HEX);
-    u8g2.setCursor(18,10);
+    u8g2.setCursor(18,20);
     u8g2.print(keyArray[2],HEX);
-    u8g2.setCursor(2,20);
-    xSemaphoreGive(keyArrayMutex);
-
+    
     //Print key press
-    // if(mapofKeys.find(idxKey)->second.letter != 'N'){
-    //   u8g2.print(mapofKeys.find(idxKey)->second.letter);
-    //   u8g2.setCursor(10,20);
-    //   if(mapofKeys.find(idxKey)->second.hash){
-    //     u8g2.print('#');
-    //   }   
-    // }
-
-    u8g2.setCursor(2,20);
+    u8g2.setCursor(34,20);
     u8g2.print(NOTES[idxKey]);
+
+    //Print CAN frame 
+    Serial.println((char)RX_Message[0]);
+    Serial.println(RX_Message[1]);
+    Serial.println(RX_Message[2]);
+    u8g2.setCursor(2,30);
+    u8g2.print((char)RX_Message[0]);
+    u8g2.print(RX_Message[1]);
+    u8g2.print(RX_Message[2]);
+
+    xSemaphoreGive(keyArrayMutex);
+    
+   
 
     u8g2.sendBuffer();          // transfer internal memory to the display
     //Toggle LED
@@ -182,6 +194,11 @@ void setup() {
   sampleTimer->setOverflow(22000, HERTZ_FORMAT);
   sampleTimer->attachInterrupt(sampleISR);
   sampleTimer->resume();
+
+  //Initialise CAN Hardware
+  CAN_Init(true); //CAN_Init(true);
+  setCANFilter(0x123,0x7ff);
+  CAN_Start();
 
   //Set pin directions
   pinMode(RA0_PIN, OUTPUT);
