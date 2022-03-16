@@ -64,12 +64,21 @@
     {12, {'B',false}}
   };
 
+  const static char* NOTES[13] = { " ","C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+
+  //Global Outgoing Message
+  volatile uint8_t TX_Message[8] = {0};
+
   // Current Step
   volatile int32_t currentStepSize = 0;
 
-  //keyMatric
+  //keyMatrix
   volatile uint8_t keyArray[7];
   volatile int idxKey;
+ 
+//Global handle
+SemaphoreHandle_t keyArrayMutex;
+
 
 //Display driver object
 U8G2_SSD1305_128X32_NONAME_F_HW_I2C u8g2(U8G2_R0);
@@ -82,7 +91,7 @@ void setOutMuxBit(const uint8_t bitIdx, const bool value) {
       digitalWrite(RA2_PIN, bitIdx & 0x04);
       digitalWrite(OUT_PIN,value);
       digitalWrite(REN_PIN,HIGH);
-      delayMicroseconds(2);
+      delayMicroseconds(15);
       digitalWrite(REN_PIN,LOW);
 }
 
@@ -98,7 +107,6 @@ void sampleISR(){
   phaseAcc += currentStepSize;
   int32_t Vout = phaseAcc >> 24;
   analogWrite(OUTR_PIN, Vout + 128);
-  //Serial.println(Vout);
 }
 
 void scanKeysTask(void * pvParameters){
@@ -110,6 +118,7 @@ void scanKeysTask(void * pvParameters){
     setOutMuxBit(0x01, true);
     int32_t localCurrentStepSize = 0;
     idxKey = 0;
+    xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
     for(int i = 0; i < 3; i++){
       keyArray[i] = readCols(i);
       int j = 0;
@@ -121,9 +130,9 @@ void scanKeysTask(void * pvParameters){
         j++;
       }
     }
+    xSemaphoreGive(keyArrayMutex);
     //Serial.println(keyArray[0]);
     __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
-    //vTaskDelay(1);
   }
 }
 
@@ -135,6 +144,7 @@ void displayUpdateTask(void * pvParameters){
     //Serial.print("Hello");
     //Update display
     //Serial.println(keyArray[0]);
+    xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
     u8g2.clearBuffer();         // clear the internal memory
     u8g2.setFont(u8g2_font_ncenB08_tr); // choose a suitable font
     u8g2.setCursor(2,10);
@@ -144,19 +154,23 @@ void displayUpdateTask(void * pvParameters){
     u8g2.setCursor(18,10);
     u8g2.print(keyArray[2],HEX);
     u8g2.setCursor(2,20);
+    xSemaphoreGive(keyArrayMutex);
 
     //Print key press
-    if(mapofKeys.find(idxKey)->second.letter != 'N'){
-      u8g2.print(mapofKeys.find(idxKey)->second.letter);
-      u8g2.setCursor(10,20);
-      if(mapofKeys.find(idxKey)->second.hash){
-        u8g2.print('#');
-      }   
-    }
+    // if(mapofKeys.find(idxKey)->second.letter != 'N'){
+    //   u8g2.print(mapofKeys.find(idxKey)->second.letter);
+    //   u8g2.setCursor(10,20);
+    //   if(mapofKeys.find(idxKey)->second.hash){
+    //     u8g2.print('#');
+    //   }   
+    // }
+
+    u8g2.setCursor(2,20);
+    u8g2.print(NOTES[idxKey]);
+
     u8g2.sendBuffer();          // transfer internal memory to the display
     //Toggle LED
     digitalToggle(LED_BUILTIN);
-    //vTaskDelay(1);
   }
 }
 
@@ -213,6 +227,9 @@ void setup() {
   //Initialise UART
   Serial.begin(9600);
   Serial.println("Hello World");
+
+  keyArrayMutex = xSemaphoreCreateMutex();
+
   vTaskStartScheduler();
 }
 
