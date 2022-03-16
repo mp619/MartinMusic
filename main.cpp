@@ -42,7 +42,7 @@
 
   static int32_t phaseAcc = 0;
 
-  const static char* NOTES[13] = { " ","C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
+  const static char* NOTES[13] = {" ","C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
   // Current Step
   volatile int32_t currentStepSize = 0;
@@ -51,9 +51,16 @@
   volatile uint8_t keyArray[7];
   volatile int idxKey;
 
+  //Global Queue
+  QueueHandle_t msgInQ;
+
+  //Global RX Message
+  volatile uint8_t RX_Message[8];
+
  
   //Global handle
   SemaphoreHandle_t keyArrayMutex;
+  SemaphoreHandle_t RX_MessageMutex;
 
 
 //Display driver object
@@ -83,6 +90,13 @@ void sampleISR(){
   phaseAcc += currentStepSize;
   int32_t Vout = phaseAcc >> 24;
   analogWrite(OUTR_PIN, Vout + 128);
+}
+
+void CAN_RX_ISR (void){
+ uint8_t RX_Message_ISR[8];
+ uint32_t ID;
+ CAN_RX(ID, RX_Message_ISR);
+ xQueueSendFromISR(msgInQ, RX_Message_ISR, NULL);
 }
 
 void scanKeysTask(void * pvParameters){
@@ -144,17 +158,15 @@ void displayUpdateTask(void * pvParameters){
   while (1){
     vTaskDelayUntil( &xLastWakeTime, xFrequency );
 
-    uint32_t ID;
-    uint8_t RX_Message[8]={0};
-
-    while (CAN_CheckRXLevel())CAN_RX(ID, RX_Message);
+    //uint32_t ID;
+    //while (CAN_CheckRXLevel())CAN_RX(ID, RX_Message);
     
-    xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
     u8g2.clearBuffer();         // clear the internal memory
     u8g2.setFont(u8g2_font_ncenB08_tr); // choose a suitable font
     
     u8g2.drawStr(2,10,"Music Synthesiser!");
 
+    xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
     //Activated Keys
     u8g2.setCursor(2,20);
     u8g2.print(keyArray[0],HEX);
@@ -162,11 +174,13 @@ void displayUpdateTask(void * pvParameters){
     u8g2.print(keyArray[1],HEX);
     u8g2.setCursor(18,20);
     u8g2.print(keyArray[2],HEX);
+    xSemaphoreGive(keyArrayMutex);
     
     //Print key press
     u8g2.setCursor(34,20);
     u8g2.print(NOTES[idxKey]);
 
+    xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     //Print CAN frame 
     Serial.println((char)RX_Message[0]);
     Serial.println(RX_Message[1]);
@@ -175,16 +189,32 @@ void displayUpdateTask(void * pvParameters){
     u8g2.print((char)RX_Message[0]);
     u8g2.print(RX_Message[1]);
     u8g2.print(RX_Message[2]);
-
-    xSemaphoreGive(keyArrayMutex);
-    
-   
+    xSemaphoreGive(RX_MessageMutex);
 
     u8g2.sendBuffer();          // transfer internal memory to the display
     //Toggle LED
     digitalToggle(LED_BUILTIN);
   }
 }
+
+void decodeTask(void * pvParameters){
+  const TickType_t xFrequency = 25/portTICK_PERIOD_MS;
+  TickType_t xLastWakeTime = xTaskGetTickCount();
+  xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
+  int32_t localCurrentStepSize = 0; 
+  while(true){
+    vTaskDelayUntil( &xLastWakeTime, xFrequency );
+    if((char)RX_Message[0] == 'P'){
+      localCurrentStepSize = (stepSizes[(int)floor(RX_Message[2]/4)][RX_Message[2]%3])*pow(2,(RX_Message[1]-4)) ; 
+
+    }
+    else if((char)RX_Message[0] == 'R'){
+      localCurrentStepSize = 0 ;
+    }
+    xSemaphoreGive(RX_MessageMutex);
+    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    }
+  }
 
 void setup() {
   // put your setup code here, to run once:
@@ -195,9 +225,12 @@ void setup() {
   sampleTimer->attachInterrupt(sampleISR);
   sampleTimer->resume();
 
+  msgInQ = xQueueCreate(36,8);
+
   //Initialise CAN Hardware
   CAN_Init(true); //CAN_Init(true);
   setCANFilter(0x123,0x7ff);
+  CAN_RegisterRX_ISR(CAN_RX_ISR);
   CAN_Start();
 
   //Set pin directions
@@ -241,11 +274,20 @@ void setup() {
             1, /* Task priority */
             &displayUpdateHandle ); /* Pointer to store the task handle */
 
+  TaskHandle_t decodeHandle = NULL;
+  xTaskCreate(decodeTask, /* Function that implements the task */
+           "decodeTask", /* Text name for the task */
+           32, /* Stack size in words, not bytes */
+           NULL, /* Parameter passed into the task */
+           3, /* Task priority */
+           &decodeHandle);
+
   //Initialise UART
   Serial.begin(9600);
   Serial.println("Hello World");
 
   keyArrayMutex = xSemaphoreCreateMutex();
+  RX_MessageMutex = xSemaphoreCreateMutex();
 
   vTaskStartScheduler();
 }
