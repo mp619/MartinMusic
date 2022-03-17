@@ -198,23 +198,24 @@ void displayUpdateTask(void * pvParameters){
 }
 
 void decodeTask(void * pvParameters){
-  const TickType_t xFrequency = 25/portTICK_PERIOD_MS;
-  TickType_t xLastWakeTime = xTaskGetTickCount();
-  xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
   int32_t localCurrentStepSize = 0; 
   while(true){
-    vTaskDelayUntil( &xLastWakeTime, xFrequency );
-    if((char)RX_Message[0] == 'P'){
-      localCurrentStepSize = (stepSizes[(int)floor(RX_Message[2]/4)][RX_Message[2]%3])*pow(2,(RX_Message[1]-4)) ; 
-
+    uint8_t RX_Message_local[8];
+    xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
+    if((char)RX_Message_local[0] == 'P'){
+      localCurrentStepSize = (stepSizes[(int)floor(RX_Message[2]/4)][RX_Message[2]%3])*pow(2,/*(RX_Message[1]-4)*/ 0) ;
     }
-    else if((char)RX_Message[0] == 'R'){
+    else if((char)RX_Message_local[0] == 'R'){
       localCurrentStepSize = 0 ;
     }
-    xSemaphoreGive(RX_MessageMutex);
-    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    Serial.println(localCurrentStepSize);
+    xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
+    for (int i = 0; i < 8; i++){
+      __atomic_store_n(&RX_Message[i], RX_Message_local[i], __ATOMIC_RELAXED);
     }
+    xSemaphoreGive(RX_MessageMutex);
   }
+}
 
 void setup() {
   // put your setup code here, to run once:
