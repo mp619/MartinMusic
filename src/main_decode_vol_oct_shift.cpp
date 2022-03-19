@@ -100,6 +100,7 @@ void sampleISR()
 
   Vout = Vout >> (8 - knob3.get_count() / 2);
   analogWrite(OUTR_PIN, Vout + 128);
+  //Serial.println(Vout)
 }
 
 void CAN_RX_ISR(void)
@@ -187,6 +188,9 @@ void scanKeysTask(void *pvParameters)
     xSemaphoreGive(keyArrayMutex);
     // Serial.println(keyArray[0]);
     __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+
+    keyArray[5] = readCols(5);
+    keyArray[6] = readCols(6);
   }
 }
 
