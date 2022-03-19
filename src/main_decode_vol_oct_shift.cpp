@@ -218,6 +218,7 @@ void displayUpdateTask(void *pvParameters)
 
     // Print key press
     u8g2.setCursor(34, 20);
+    u8g2.print(knob2.get_count());
     u8g2.print(NOTES[idxKey]);
 
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
@@ -252,7 +253,7 @@ void decodeTask(void *pvParameters)
     xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
     if ((char)RX_Message_local[0] == 'P')
     {
-      localCurrentStepSize = (stepSizes[RX_Message[2]]);
+      localCurrentStepSize = (stepSizes[RX_Message_local[2]]);
     }
     else if ((char)RX_Message_local[0] == 'R')
     {
@@ -298,7 +299,7 @@ void setup()
   msgOutQ = xQueueCreate(36, 8);
 
   // Initialise CAN Hardware
-  CAN_Init(false); // CAN_Init(true);
+  CAN_Init(true); // CAN_Init(true);
   setCANFilter(0x123, 0x7ff);
   CAN_RegisterRX_ISR(CAN_RX_ISR);
   CAN_RegisterTX_ISR(CAN_TX_ISR);
