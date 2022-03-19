@@ -36,9 +36,9 @@
   const int HKOE_BIT = 6;
 
   // Phase step sizes
-  const int32_t stepSizes [3][4] = {{51076057,	54113197,	57330936,	60740010},
-                                    {64351799,	68178356,	72232452,	76527617},
-                                    {81078186,	85899346,	91007187,	96418756}};
+  const int32_t stepSizes [13] = {0 ,51076057,	54113197,	57330936,	60740010,
+                                    64351799,	68178356,	72232452,	76527617,
+                                    81078186,	85899346,	91007187,	96418756};
 
   static int32_t phaseAcc = 0;
 
@@ -53,6 +53,7 @@
 
   //Global Queue
   QueueHandle_t msgInQ;
+  QueueHandle_t msgOutQ;
 
   //Global RX Message
   volatile uint8_t RX_Message[8];
@@ -61,6 +62,7 @@
   //Global handle
   SemaphoreHandle_t keyArrayMutex;
   SemaphoreHandle_t RX_MessageMutex;
+  SemaphoreHandle_t CAN_TX_Semaphore;
 
 
 //Display driver object
@@ -110,18 +112,20 @@ void scanKeysTask(void * pvParameters){
     setOutMuxBit(0x01, true);
     int32_t localCurrentStepSize = 0;
     idxKey = 0;
+
     xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
+
     for(int i = 0; i < 3; i++){
       keyArray[i] = readCols(i);
       int j = 0;
       for(uint8_t idx = 1; idx < 9; idx = idx*2){
         if((keyArray[i] & idx) == 0){
-          localCurrentStepSize =  stepSizes[i][j];
           idxKey = i*4 + j + 1;
         }
         j++;
       }
     }
+  localCurrentStepSize = stepSizes[idxKey];
 
   char keyState;
   uint8_t activeKey = idxKey;
@@ -142,9 +146,7 @@ void scanKeysTask(void * pvParameters){
   }
 
   //Sendign CAN frame 
-  CAN_TX(0x123, TX_Message);
-  
-  
+  xQueueSend( msgOutQ, TX_Message, portMAX_DELAY);
 
   xSemaphoreGive(keyArrayMutex);
   //Serial.println(keyArray[0]);
@@ -203,17 +205,32 @@ void decodeTask(void * pvParameters){
     uint8_t RX_Message_local[8];
     xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
     if((char)RX_Message_local[0] == 'P'){
-      localCurrentStepSize = (stepSizes[(int)floor(RX_Message[2]/4)][RX_Message[2]%3])*pow(2,/*(RX_Message[1]-4)*/ 0) ;
+      localCurrentStepSize = (stepSizes[RX_Message[2]])/**pow(2,(RX_Message[1]-4) 0)*/ ;
     }
     else if((char)RX_Message_local[0] == 'R'){
       localCurrentStepSize = 0 ;
     }
     Serial.println(localCurrentStepSize);
+    //Serial.print((int)floor(RX_Message[2]/4));
+    //Serial.print(RX_Message[2]%3);
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     for (int i = 0; i < 8; i++){
       __atomic_store_n(&RX_Message[i], RX_Message_local[i], __ATOMIC_RELAXED);
     }
     xSemaphoreGive(RX_MessageMutex);
+  }
+}
+
+void CAN_TX_ISR (void){
+  xSemaphoreGiveFromISR(CAN_TX_Semaphore,NULL);
+}
+
+void CAN_TX_Task (void * pvParameters){
+  uint8_t msgOut[8];
+  while(1){
+    xQueueReceive(msgOutQ, msgOut, portMAX_DELAY);
+    xSemaphoreTake(CAN_TX_Semaphore, portMAX_DELAY);
+    CAN_TX(0x123, msgOut);
   }
 }
 
@@ -227,11 +244,13 @@ void setup() {
   sampleTimer->resume();
 
   msgInQ = xQueueCreate(36,8);
+  msgOutQ = xQueueCreate(36,8);
 
   //Initialise CAN Hardware
-  CAN_Init(true); //CAN_Init(true);
+  CAN_Init(false); //CAN_Init(true);
   setCANFilter(0x123,0x7ff);
   CAN_RegisterRX_ISR(CAN_RX_ISR);
+  CAN_RegisterTX_ISR(CAN_TX_ISR);
   CAN_Start();
 
   //Set pin directions
@@ -280,8 +299,16 @@ void setup() {
            "decodeTask", /* Text name for the task */
            32, /* Stack size in words, not bytes */
            NULL, /* Parameter passed into the task */
-           3, /* Task priority */
+           4, /* Task priority */
            &decodeHandle);
+
+  TaskHandle_t CAN_TX_Handle = NULL;
+  xTaskCreate(CAN_TX_Task, /* Function that implements the task */
+           "CAN_TX", /* Text name for the task */
+           32, /* Stack size in words, not bytes */
+           NULL, /* Parameter passed into the task */
+           3, /* Task priority */
+           &CAN_TX_Handle);  
 
   //Initialise UART
   Serial.begin(9600);
@@ -289,6 +316,7 @@ void setup() {
 
   keyArrayMutex = xSemaphoreCreateMutex();
   RX_MessageMutex = xSemaphoreCreateMutex();
+  CAN_TX_Semaphore = xSemaphoreCreateCounting(3,3);
 
   vTaskStartScheduler();
 }
