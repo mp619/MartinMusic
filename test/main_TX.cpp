@@ -181,11 +181,12 @@ void scanKeysTask(void *pvParameters)
       TX_Message[2] = activeKey;
     }
 
-    // Sendign CAN frame
+    // Sendign CAN frames
     xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
 
     xSemaphoreGive(keyArrayMutex);
     // Serial.println(keyArray[0]);
+    localCurrentStepSize = 0;  //TX fucntionality no sound
     __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
   }
 }
@@ -253,7 +254,7 @@ void decodeTask(void *pvParameters)
     xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
     if ((char)RX_Message_local[0] == 'P')
     {
-      localCurrentStepSize = (stepSizes[RX_Message_local[2]]);
+      localCurrentStepSize = (stepSizes[RX_Message[2]]);
     }
     else if ((char)RX_Message_local[0] == 'R')
     {
@@ -299,7 +300,7 @@ void setup()
   msgOutQ = xQueueCreate(36, 8);
 
   // Initialise CAN Hardware
-  CAN_Init(true); // CAN_Init(true);
+  CAN_Init(false); // CAN_Init(true);
   setCANFilter(0x123, 0x7ff);
   CAN_RegisterRX_ISR(CAN_RX_ISR);
   CAN_RegisterTX_ISR(CAN_TX_ISR);

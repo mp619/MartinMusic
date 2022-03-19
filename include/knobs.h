@@ -18,8 +18,15 @@ public:
         num = _num; 
         if(_num==3){
             max_val = 16;
+            // set a default volume of 12
+            int default_vol = 12;
+            count_knob = default_vol;
         }else if(_num == 2){
             max_val = 8;
+            // set a default volume of 4
+            int default_oct = 4;
+            count_knob = default_oct;
+
         }
     }
 

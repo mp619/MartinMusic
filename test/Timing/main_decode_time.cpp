@@ -115,12 +115,12 @@ void scanKeysTask(void *pvParameters)
     uint8_t TX_Message[8] = {0};
     const TickType_t xFrequency = 50 / portTICK_PERIOD_MS;
     TickType_t xLastWakeTime = xTaskGetTickCount();
-    uint32_t StartTotalTime = micros();
-    for(int i = 0 ; i < 32 ; i++){
-        //   while (1)
-        //   {
-        //     vTaskDelayUntil(&xLastWakeTime, xFrequency);
-        // ReadCol
+    //uint32_t StartTotalTime = micros();
+    //for(int i = 0 ; i < 32 ; i++){
+          while (1)
+          {
+            vTaskDelayUntil(&xLastWakeTime, xFrequency);
+        //ReadCol
         setOutMuxBit(0x01, true);
         int32_t localCurrentStepSize = 0;
         idxKey = 0;
@@ -148,10 +148,10 @@ void scanKeysTask(void *pvParameters)
         knob2.decodeKnob(keyArray[3]);
 
         // emulate all pressed
-        for (int i = 0; i < 8; i++)
-        {
-            keyArray[i] = 0;
-        }
+        // for (int i = 0; i < 8; i++)
+        // {
+        //     keyArray[i] = 0;
+        // }
 
         char keyState;
         uint8_t activeKey = idxKey;
@@ -197,12 +197,12 @@ void scanKeysTask(void *pvParameters)
         xSemaphoreGive(keyArrayMutex);
         // Serial.println(keyArray[0]);
         __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
-        //}
-    }
-        uint32_t TotalTime = micros()-StartTotalTime;
-        TotalTime = TotalTime/32;
-        Serial.println("Average Scan Keys Time:");
-        Serial.println(TotalTime);
+        }
+    // }
+    //     uint32_t TotalTime = micros()-StartTotalTime;
+    //     TotalTime = TotalTime/32;
+    //     Serial.println("Average Scan Keys Time:");
+    //     Serial.println(TotalTime);
 }
 
 void displayUpdateTask(void *pvParameters)
@@ -256,15 +256,18 @@ void displayUpdateTask(void *pvParameters)
         // Toggle LED
         digitalToggle(LED_BUILTIN);
     }
+    
 }
 
 void decodeTask(void *pvParameters)
 {
     int32_t localCurrentStepSize = 0;
-    while (true)
-    {
+    uint32_t StartTotalTime = micros();
+    for(int i = 0 ; i < 32 ; i++){
+    // while (true)
+    // {
         uint8_t RX_Message_local[8];
-        xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
+        //xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
         if ((char)RX_Message_local[0] == 'P')
         {
             localCurrentStepSize = (stepSizes[RX_Message[2]]);
@@ -273,14 +276,19 @@ void decodeTask(void *pvParameters)
         {
             localCurrentStepSize = 0;
         }
-        Serial.println(localCurrentStepSize);
+        //Serial.println(localCurrentStepSize);
         xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
         for (int i = 0; i < 8; i++)
         {
             __atomic_store_n(&RX_Message[i], RX_Message_local[i], __ATOMIC_RELAXED);
         }
         xSemaphoreGive(RX_MessageMutex);
+    //}
     }
+        uint32_t TotalTime = micros()-StartTotalTime;
+        TotalTime = TotalTime/32;
+        Serial.println("Average Decode Time:");
+        Serial.println(TotalTime);
 }
 
 void CAN_TX_ISR(void)
@@ -344,29 +352,29 @@ void setup()
     setOutMuxBit(DEN_BIT, HIGH); // Enable display power supply
 
     // Threading
-    TaskHandle_t scanKeysHandle = NULL;
-    xTaskCreate(scanKeysTask,     /* Function that implements the task */
-                "scanKeys",       /* Text name for the task */
-                64,               /* Stack size in words, not bytes */
-                NULL,             /* Parameter passed into the task */
-                2,                /* Task priority */
-                &scanKeysHandle); /* Pointer to store the task handle */
+    // TaskHandle_t scanKeysHandle = NULL;
+    // xTaskCreate(scanKeysTask,     /* Function that implements the task */
+    //             "scanKeys",       /* Text name for the task */
+    //             64,               /* Stack size in words, not bytes */
+    //             NULL,             /* Parameter passed into the task */
+    //             2,                /* Task priority */
+    //             &scanKeysHandle); /* Pointer to store the task handle */
 
-    //   TaskHandle_t displayUpdateHandle = NULL;
-    //   xTaskCreate(displayUpdateTask,     /* Function that implements the task */
-    //               "displayUpdate",       /* Text name for the task */
-    //               256,                   /* Stack size in words, not bytes */
-    //               NULL,                  /* Parameter passed into the task */
-    //               1,                     /* Task priority */
-    //               &displayUpdateHandle); /* Pointer to store the task handle */
+      // TaskHandle_t displayUpdateHandle = NULL;
+      // xTaskCreate(displayUpdateTask,     /* Function that implements the task */
+      //             "displayUpdate",       /* Text name for the task */
+      //             256,                   /* Stack size in words, not bytes */
+      //             NULL,                  /* Parameter passed into the task */
+      //             1,                     /* Task priority */
+      //             &displayUpdateHandle); /* Pointer to store the task handle */
 
-    //   TaskHandle_t decodeHandle = NULL;
-    //   xTaskCreate(decodeTask,   /* Function that implements the task */
-    //               "decodeTask", /* Text name for the task */
-    //               32,           /* Stack size in words, not bytes */
-    //               NULL,         /* Parameter passed into the task */
-    //               4,            /* Task priority */
-    //               &decodeHandle);
+      TaskHandle_t decodeHandle = NULL;
+      xTaskCreate(decodeTask,   /* Function that implements the task */
+                  "decodeTask", /* Text name for the task */
+                  32,           /* Stack size in words, not bytes */
+                  NULL,         /* Parameter passed into the task */
+                  4,            /* Task priority */
+                  &decodeHandle);
 
     //   TaskHandle_t CAN_TX_Handle = NULL;
     //   xTaskCreate(CAN_TX_Task, /* Function that implements the task */

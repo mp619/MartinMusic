@@ -115,14 +115,13 @@ void scanKeysTask(void *pvParameters)
   uint8_t TX_Message[8] = {0};
   const TickType_t xFrequency = 50 / portTICK_PERIOD_MS;
   TickType_t xLastWakeTime = xTaskGetTickCount();
-
   while (1)
   {
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
     // ReadCol
     setOutMuxBit(0x01, true);
-    int32_t localCurrentStepSize = 0;
     idxKey = 0;
+    int32_t localCurrentStepSize = 0;
 
     xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
 
@@ -163,6 +162,7 @@ void scanKeysTask(void *pvParameters)
       localCurrentStepSize = localCurrentStepSize >> -shift;
     }
 
+    Serial.print("scanKeysTask: ");
     Serial.println(localCurrentStepSize);
 
     if (activeKey == 0)
@@ -186,7 +186,13 @@ void scanKeysTask(void *pvParameters)
 
     xSemaphoreGive(keyArrayMutex);
     // Serial.println(keyArray[0]);
-    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    
+    xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
+    if ((char)RX_Message[0] == 'R')
+    {
+       __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    }
+    xSemaphoreGive(RX_MessageMutex);
   }
 }
 
@@ -223,9 +229,10 @@ void displayUpdateTask(void *pvParameters)
 
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     // Print CAN frame
-    Serial.println((char)RX_Message[0]);
-    Serial.println(RX_Message[1]);
-    Serial.println(RX_Message[2]);
+    // Serial.print("Recieving: ");
+    // Serial.print((char)RX_Message[0]);
+    // Serial.print(RX_Message[1]);
+    // Serial.println(RX_Message[2]);
     u8g2.setCursor(2, 30);
     u8g2.print((char)RX_Message[0]);
     u8g2.print(RX_Message[1]);
@@ -257,9 +264,23 @@ void decodeTask(void *pvParameters)
     }
     else if ((char)RX_Message_local[0] == 'R')
     {
-      localCurrentStepSize = 0;
+      localCurrentStepSize = currentStepSize;
     }
-    Serial.println(localCurrentStepSize);
+    int octave_RX = RX_Message_local[1];
+    int shift = octave_RX - 4;
+
+    if (shift == 0){
+      localCurrentStepSize = localCurrentStepSize;
+    }
+    else if (shift > 0){
+      localCurrentStepSize = localCurrentStepSize << shift;
+    }
+    else if (shift < 0){
+      localCurrentStepSize = localCurrentStepSize >> -shift;
+    }
+    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    Serial.print("decodeTask: ");
+    Serial.println(currentStepSize);
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     for (int i = 0; i < 8; i++)
     {
@@ -267,6 +288,7 @@ void decodeTask(void *pvParameters)
     }
     xSemaphoreGive(RX_MessageMutex);
   }
+
 }
 
 void CAN_TX_ISR(void)
@@ -299,7 +321,7 @@ void setup()
   msgOutQ = xQueueCreate(36, 8);
 
   // Initialise CAN Hardware
-  CAN_Init(true); // CAN_Init(true);
+  CAN_Init(false); // CAN_Init(true);
   setCANFilter(0x123, 0x7ff);
   CAN_RegisterRX_ISR(CAN_RX_ISR);
   CAN_RegisterTX_ISR(CAN_TX_ISR);
@@ -364,7 +386,7 @@ void setup()
 
   // Initialise UART
   Serial.begin(9600);
-  Serial.println("Hello World");
+  // Serial.println("Hello World");
 
   keyArrayMutex = xSemaphoreCreateMutex();
   RX_MessageMutex = xSemaphoreCreateMutex();
