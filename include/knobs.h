@@ -27,6 +27,12 @@ public:
             int default_oct = 4;
             count_knob = default_oct;
 
+        }else if(_num == 1){
+            max_val = 4;
+            // set a default volume of 4
+            int default_wave = 1;
+            count_knob = default_wave;
+
         }
     }
 

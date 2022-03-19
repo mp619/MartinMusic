@@ -4,6 +4,9 @@
 #include <STM32FreeRTOS.h>
 #include <ES_CAN.h>
 #include <knobs.h>
+#include <string>
+#define _USE_MATH_DEFINES
+#include <cmath>
 
 // Constants
 const uint32_t interval = 100; // Display update interval
@@ -37,8 +40,9 @@ const int HKOW_BIT = 5;
 const int HKOE_BIT = 6;
 
 // knobs
-Knobs knob2(2);
-Knobs knob3(3);
+Knobs knob2(2); // octave
+Knobs knob3(3); // volume
+Knobs knob1(1); // waveform
 
 // Phase step sizes
 const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
@@ -46,11 +50,14 @@ const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
                                81078186, 85899346, 91007187, 96418756};
 
 static int32_t phaseAcc = 0;
+static int32_t phaseAcc_new = 0;
+static int32_t up = 1;
 
 const static char *NOTES[13] = {" ", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
 // Current Step
 volatile int32_t currentStepSize = 0;
+// volatile char waveform[3] = [ "saw", "sin", "square" ];
 
 // keyMatrix
 volatile uint8_t keyArray[7];
@@ -95,7 +102,49 @@ uint8_t readCols(int row)
 
 void sampleISR()
 {
-  phaseAcc += currentStepSize;
+  // sawtooth
+  if (knob1.get_count() == 1)
+  {
+    phaseAcc += currentStepSize;
+  }
+  // square, frequecy slightly wrong because of the tips of the triagle
+  else if (knob1.get_count() == 2)
+  {
+    if (up == 1)
+    {
+      phaseAcc_new += currentStepSize * 2;
+    }
+    else if (up == 0)
+    {
+      phaseAcc_new -= currentStepSize * 2;
+    }
+    if (phaseAcc_new < phaseAcc & up == 1)
+    {
+      up = 0;
+    }
+    else if (phaseAcc_new > phaseAcc & up == 0)
+    {
+      up = 1;
+    }
+    if (up == 1)
+    {
+      phaseAcc += currentStepSize * 2;
+    }
+    else if (up == 0)
+    {
+      phaseAcc -= currentStepSize * 2;
+    }
+
+    phaseAcc_new = phaseAcc;
+    //Serial.print("phaseAcc");
+
+  }
+  else if (knob1.get_count() == 3) // sinewave
+  {
+        uint8_t sine =  sin(2 * M_PI * phaseAcc) ;
+        phaseAcc += currentStepSize;
+  }
+  Serial.println(phaseAcc);
   int32_t Vout = phaseAcc >> 24;
 
   Vout = Vout >> (8 - knob3.get_count() / 2);
@@ -143,8 +192,10 @@ void scanKeysTask(void *pvParameters)
 
     // read volume knobs
     keyArray[3] = readCols(3);
+    keyArray[4] = readCols(4);
     knob3.decodeKnob(keyArray[3]);
     knob2.decodeKnob(keyArray[3]);
+    knob1.decodeKnob(keyArray[4]);
 
     char keyState;
     uint8_t activeKey = idxKey;
@@ -163,7 +214,7 @@ void scanKeysTask(void *pvParameters)
       localCurrentStepSize = localCurrentStepSize >> -shift;
     }
 
-    Serial.println(localCurrentStepSize);
+    //Serial.println(localCurrentStepSize);
 
     if (activeKey == 0)
     {
@@ -223,9 +274,9 @@ void displayUpdateTask(void *pvParameters)
 
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     // Print CAN frame
-    Serial.println((char)RX_Message[0]);
-    Serial.println(RX_Message[1]);
-    Serial.println(RX_Message[2]);
+    // Serial.println((char)RX_Message[0]);
+    // Serial.println(RX_Message[1]);
+    // Serial.println(RX_Message[2]);
     u8g2.setCursor(2, 30);
     u8g2.print((char)RX_Message[0]);
     u8g2.print(RX_Message[1]);
@@ -236,6 +287,12 @@ void displayUpdateTask(void *pvParameters)
     u8g2.print("Volume:");
     u8g2.setCursor(88, 30);
     u8g2.print(knob3.get_count(), DEC);
+    xSemaphoreGive(RX_MessageMutex);
+    // waveform
+    u8g2.setCursor(34, 20);
+    u8g2.print("Wave:");
+    u8g2.setCursor(88, 20);
+    u8g2.print(knob1.get_count(), DEC);
     xSemaphoreGive(RX_MessageMutex);
 
     u8g2.sendBuffer(); // transfer internal memory to the display
@@ -259,7 +316,7 @@ void decodeTask(void *pvParameters)
     {
       localCurrentStepSize = 0;
     }
-    Serial.println(localCurrentStepSize);
+    //Serial.println(localCurrentStepSize);
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     for (int i = 0; i < 8; i++)
     {
@@ -364,7 +421,7 @@ void setup()
 
   // Initialise UART
   Serial.begin(9600);
-  Serial.println("Hello World");
+  //Serial.println("Hello World");
 
   keyArrayMutex = xSemaphoreCreateMutex();
   RX_MessageMutex = xSemaphoreCreateMutex();
