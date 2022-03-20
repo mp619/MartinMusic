@@ -48,15 +48,19 @@ Knobs knob1(1); // waveform
 const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
                                64351799, 68178356, 72232452, 76527617,
                                81078186, 85899346, 91007187, 96418756};
+const float key_freq_sine[13] = {0, 0.07472, 0.079163, 0.08387, 0.088858, 0.094141, 0.099739,
+                                 0.10567, 0.111954, 0.118611, 0.125664, 0.133136, 0.141053};
 
 static int32_t phaseAcc = 0;
 static int32_t phaseAcc_new = 0;
+static float phaseAcc_sine = 0;
 static int32_t up = 1;
 
 const static char *NOTES[13] = {" ", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
 // Current Step
 volatile int32_t currentStepSize = 0;
+volatile int32_t currentStepSine = 0;
 // volatile char waveform[3] = [ "saw", "sin", "square" ];
 
 // keyMatrix
@@ -102,54 +106,107 @@ uint8_t readCols(int row)
 
 void sampleISR()
 {
-  // sawtooth
+  static int32_t Vout = 0;
+  //sawtooth
   if (knob1.get_count() == 1)
   {
     phaseAcc += currentStepSize;
+    Vout = phaseAcc >> 24;
   }
-  // square, frequecy slightly wrong because of the tips of the triagle
+  //  square
+  if (knob1.get_count() == 4)
+  {
+    phaseAcc += currentStepSize;
+    if (phaseAcc > 1073741824)
+    {
+      Vout = 127;
+    }
+    else
+    {
+      Vout = -128;
+    }
+  }
+  // triang, frequecy slightly wrong because of the tips of the triagle
   else if (knob1.get_count() == 2)
   {
-    if (up == 1)
-    {
-      phaseAcc_new += currentStepSize * 2;
-    }
-    else if (up == 0)
-    {
-      phaseAcc_new -= currentStepSize * 2;
-    }
-    if (phaseAcc_new < phaseAcc & up == 1)
-    {
-      up = 0;
-    }
-    else if (phaseAcc_new > phaseAcc & up == 0)
-    {
-      up = 1;
-    }
-    if (up == 1)
-    {
-      phaseAcc += currentStepSize * 2;
-    }
-    else if (up == 0)
-    {
-      phaseAcc -= currentStepSize * 2;
-    }
-
-    phaseAcc_new = phaseAcc;
-    //Serial.print("phaseAcc");
-
-  }
-  else if (knob1.get_count() == 3) // sinewave
+  if (up == 1)
   {
-        uint8_t sine =  sin(2 * M_PI * phaseAcc) ;
-        phaseAcc += currentStepSize;
+    phaseAcc_new += currentStepSize * 2;
   }
-  Serial.println(phaseAcc);
-  int32_t Vout = phaseAcc >> 24;
+  else if (up == 0)
+  {
+    phaseAcc_new -= currentStepSize * 2;
+  }
+  if (phaseAcc_new < phaseAcc & up == 1)
+  {
+    up = 0;
+  }
+  else if (phaseAcc_new > phaseAcc & up == 0)
+  {
+    up = 1;
+  }
+  if (up == 1)
+  {
+    phaseAcc += currentStepSize * 2;
+  }
+  else if (up == 0)
+  {
+    phaseAcc -= currentStepSize * 2;
+  }
+  phaseAcc_new = phaseAcc;
+  Vout = phaseAcc >> 24;
+  Serial.print("phaseAcc");
+  }
+  // // *****triangle
+  // if (Vout > 0 & Vout <= 128)
+  // {
+  //   phaseAcc += currentStepSize;
+  // }
+  // else if (Vout > 128 & Vout < 255)
+  // {
+  //   phaseAcc -= currentStepSize;
+  // }
+  // Vout = phaseAcc >> 24;
+  // //Vout = 2 * Vout;
+  // Serial.println(Vout);
+  //*****************sinewave
+  else if (knob1.get_count() == 3)
+  {
+  // key_freq_sine[id] = f / f_s * 2 * M_PI;
+  // phaseAcc += currentStepSize;
+  // float sine = (sin( currentStepSine + phaseAcc)) * 255.0;
+  // int32_t current = 51076057;
+  // phaseAcc += current;
+  // double x = 2 * 3.14159265358979323846*phaseAcc;//StepSize;
+  // float sine = (sin(x)) * 255.0;
+  // Serial.println(sine);
+  // int32_t sine_int = sine;
+  // Vout = sine_int >> 24;
+  //Serial.println(Vout);
+        //float currentSine=  0.07472;
+        phaseAcc_sine += (currentStepSine *255);
+        //double x = 2 * 3.14159265358979323846 * phaseAcc/180; // StepSize;
+        //float y= sin(0);
+        //Serial.println(phaseAcc_sine);
+        float sine = (sin(phaseAcc_sine))*127;
+               // Serial.println(sine);
 
+        int32_t sine_int = sine;
+        Vout = sine_int;
+
+//Serial.println(sine_int);
+//  127*(1+sineLUT)
+//  if Vout > 127 Vout = 127
+
+
+}
+
+  // Serial.println(sine_int);
+  // int32_t Vout = phaseAcc >> 24;
+  // Serial.println(Vout);
   Vout = Vout >> (8 - knob3.get_count() / 2);
+  // Serial.println(Vout);
   analogWrite(OUTR_PIN, Vout + 128);
-  //Serial.println(Vout)
 }
 
 void CAN_RX_ISR(void)
@@ -172,6 +229,7 @@ void scanKeysTask(void *pvParameters)
     // ReadCol
     setOutMuxBit(0x01, true);
     int32_t localCurrentStepSize = 0;
+    int32_t localFreqSine = 0;
     idxKey = 0;
 
     xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
@@ -189,6 +247,7 @@ void scanKeysTask(void *pvParameters)
         j++;
       }
       localCurrentStepSize = stepSizes[idxKey];
+      localFreqSine = key_freq_sine[idxKey];
     }
 
     // read volume knobs
@@ -205,17 +264,20 @@ void scanKeysTask(void *pvParameters)
     if (shift == 0)
     {
       localCurrentStepSize = localCurrentStepSize;
+      localFreqSine = localFreqSine;
     }
     else if (shift > 0)
     {
       localCurrentStepSize = localCurrentStepSize << shift;
+      localFreqSine = localFreqSine << shift;
     }
     else if (shift < 0)
     {
       localCurrentStepSize = localCurrentStepSize >> -shift;
+      localFreqSine = localFreqSine >> -shift;
     }
 
-    //Serial.println(localCurrentStepSize);
+    // Serial.println(localCurrentStepSize);
 
     if (activeKey == 0)
     {
@@ -239,6 +301,7 @@ void scanKeysTask(void *pvParameters)
     xSemaphoreGive(keyArrayMutex);
     // Serial.println(keyArray[0]);
     __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    __atomic_store_n(&currentStepSine, localFreqSine, __ATOMIC_RELAXED);
 
     keyArray[5] = readCols(5);
     keyArray[6] = readCols(6);
@@ -320,7 +383,7 @@ void decodeTask(void *pvParameters)
     {
       localCurrentStepSize = 0;
     }
-    //Serial.println(localCurrentStepSize);
+    // Serial.println(localCurrentStepSize);
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     for (int i = 0; i < 8; i++)
     {
@@ -425,7 +488,7 @@ void setup()
 
   // Initialise UART
   Serial.begin(9600);
-  //Serial.println("Hello World");
+  // Serial.println("Hello World");
 
   keyArrayMutex = xSemaphoreCreateMutex();
   RX_MessageMutex = xSemaphoreCreateMutex();
