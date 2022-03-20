@@ -115,88 +115,94 @@ void scanKeysTask(void *pvParameters)
     uint8_t TX_Message[8] = {0};
     const TickType_t xFrequency = 50 / portTICK_PERIOD_MS;
     TickType_t xLastWakeTime = xTaskGetTickCount();
+    uint32_t StartTotalTime = micros();
+    for(int i = 0 ; i < 32 ; i++){
+        //   while (1)
+        //   {
+        //     vTaskDelayUntil(&xLastWakeTime, xFrequency);
+        // ReadCol
+        setOutMuxBit(0x01, true);
+        int32_t localCurrentStepSize = 0;
+        idxKey = 0;
 
-    //   while (1)
-    //   {
-    //     vTaskDelayUntil(&xLastWakeTime, xFrequency);
-    // ReadCol
-    setOutMuxBit(0x01, true);
-    int32_t localCurrentStepSize = 0;
-    idxKey = 0;
+        xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
 
-    xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
-
-    for (int i = 0; i < 3; i++)
-    {
-        keyArray[i] = readCols(i);
-        int j = 0;
-        for (uint8_t idx = 1; idx < 9; idx = idx * 2)
+        for (int i = 0; i < 3; i++)
         {
-            if ((keyArray[i] & idx) == 0)
+            keyArray[i] = readCols(i);
+            int j = 0;
+            for (uint8_t idx = 1; idx < 9; idx = idx * 2)
             {
-                idxKey = i * 4 + j + 1;
+                if ((keyArray[i] & idx) == 0)
+                {
+                    idxKey = i * 4 + j + 1;
+                }
+                j++;
             }
-            j++;
+            localCurrentStepSize = stepSizes[idxKey];
         }
-        localCurrentStepSize = stepSizes[idxKey];
+
+        // read volume knobs
+        // keyArray[3] = readCols(3);
+        knob3.decodeKnob(keyArray[3]);
+        knob2.decodeKnob(keyArray[3]);
+
+        // emulate all pressed
+        for (int i = 0; i < 8; i++)
+        {
+            keyArray[i] = 0;
+        }
+
+        char keyState;
+        uint8_t activeKey = idxKey;
+        uint8_t octave = knob2.get_count();
+        int shift = octave - 4;
+        if (shift == 0)
+        {
+            localCurrentStepSize = localCurrentStepSize;
+        }
+        else if (shift > 0)
+        {
+            localCurrentStepSize = localCurrentStepSize << shift;
+        }
+        else if (shift < 0)
+        {
+            localCurrentStepSize = localCurrentStepSize >> -shift;
+        }
+
+        // Serial.println(localCurrentStepSize);
+
+        // emulate all key pressed
+        activeKey == 1;
+
+        if (activeKey == 0)
+        {
+            keyState = 'R';
+            activeKey = TX_Message[2];
+            TX_Message[0] = keyState;
+            TX_Message[1] = octave;
+            TX_Message[2] = activeKey;
+        }
+        else
+        {
+            keyState = 'P';
+            TX_Message[0] = keyState;
+            TX_Message[1] = octave;
+            TX_Message[2] = activeKey;
+        }
+
+        // Sendign CAN frame
+        xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
+
+        xSemaphoreGive(keyArrayMutex);
+        // Serial.println(keyArray[0]);
+        __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+        //}
     }
-
-    // read volume knobs
-    // keyArray[3] = readCols(3);
-    knob3.decodeKnob(keyArray[3]);
-    knob2.decodeKnob(keyArray[3]);
-
-    // emulate all pressed
-    for (int i = 0; i < 8; i++)
-    {
-        keyArray[i] = 0;
-    }
-
-    char keyState;
-    uint8_t activeKey = idxKey;
-    uint8_t octave = knob2.get_count();
-    int shift = octave - 4;
-    if (shift == 0)
-    {
-        localCurrentStepSize = localCurrentStepSize;
-    }
-    else if (shift > 0)
-    {
-        localCurrentStepSize = localCurrentStepSize << shift;
-    }
-    else if (shift < 0)
-    {
-        localCurrentStepSize = localCurrentStepSize >> -shift;
-    }
-
-    // Serial.println(localCurrentStepSize);
-
-    // emulate all key pressed
-    activeKey == 1;
-
-    if (activeKey == 0)
-    {
-        keyState = 'R';
-        activeKey = TX_Message[2];
-        TX_Message[0] = keyState;
-        TX_Message[1] = octave;
-        TX_Message[2] = activeKey;
-    }
-    else
-    {
-        keyState = 'P';
-        TX_Message[0] = keyState;
-        TX_Message[1] = octave;
-        TX_Message[2] = activeKey;
-    }
-
-    // Sendign CAN frame
-    xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
-
-    xSemaphoreGive(keyArrayMutex);
-    // Serial.println(keyArray[0]);
-    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
-    //}
+        uint32_t TotalTime = micros()-StartTotalTime;
+        TotalTime = TotalTime/32;
+        Serial.println("Average Scan Keys Time:");
+        Serial.println(TotalTime);
 }
 
 void displayUpdateTask(void *pvParameters)
