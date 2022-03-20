@@ -107,7 +107,7 @@ uint8_t readCols(int row)
 void sampleISR()
 {
   static int32_t Vout = 0;
-  //sawtooth
+  // sawtooth
   if (knob1.get_count() == 1)
   {
     phaseAcc += currentStepSize;
@@ -129,33 +129,33 @@ void sampleISR()
   // triang, frequecy slightly wrong because of the tips of the triagle
   else if (knob1.get_count() == 2)
   {
-  if (up == 1)
-  {
-    phaseAcc_new += currentStepSize * 2;
-  }
-  else if (up == 0)
-  {
-    phaseAcc_new -= currentStepSize * 2;
-  }
-  if (phaseAcc_new < phaseAcc & up == 1)
-  {
-    up = 0;
-  }
-  else if (phaseAcc_new > phaseAcc & up == 0)
-  {
-    up = 1;
-  }
-  if (up == 1)
-  {
-    phaseAcc += currentStepSize * 2;
-  }
-  else if (up == 0)
-  {
-    phaseAcc -= currentStepSize * 2;
-  }
-  phaseAcc_new = phaseAcc;
-  Vout = phaseAcc >> 24;
-  Serial.print("phaseAcc");
+    if (up == 1)
+    {
+      phaseAcc_new += currentStepSize * 2;
+    }
+    else if (up == 0)
+    {
+      phaseAcc_new -= currentStepSize * 2;
+    }
+    if (phaseAcc_new < phaseAcc & up == 1)
+    {
+      up = 0;
+    }
+    else if (phaseAcc_new > phaseAcc & up == 0)
+    {
+      up = 1;
+    }
+    if (up == 1)
+    {
+      phaseAcc += currentStepSize * 2;
+    }
+    else if (up == 0)
+    {
+      phaseAcc -= currentStepSize * 2;
+    }
+    phaseAcc_new = phaseAcc;
+    Vout = phaseAcc >> 24;
+    //Serial.print("phaseAcc");
   }
   // // *****triangle
   // if (Vout > 0 & Vout <= 128)
@@ -172,34 +172,32 @@ void sampleISR()
   //*****************sinewave
   else if (knob1.get_count() == 3)
   {
-  // key_freq_sine[id] = f / f_s * 2 * M_PI;
-  // phaseAcc += currentStepSize;
-  // float sine = (sin( currentStepSine + phaseAcc)) * 255.0;
-  // int32_t current = 51076057;
-  // phaseAcc += current;
-  // double x = 2 * 3.14159265358979323846*phaseAcc;//StepSize;
-  // float sine = (sin(x)) * 255.0;
-  // Serial.println(sine);
-  // int32_t sine_int = sine;
-  // Vout = sine_int >> 24;
-  //Serial.println(Vout);
-        //float currentSine=  0.07472;
-        phaseAcc_sine += (currentStepSine *255);
-        //double x = 2 * 3.14159265358979323846 * phaseAcc/180; // StepSize;
-        //float y= sin(0);
-        //Serial.println(phaseAcc_sine);
-        float sine = (sin(phaseAcc_sine))*127;
-               // Serial.println(sine);
+    // key_freq_sine[id] = f / f_s * 2 * M_PI;
+    // phaseAcc += currentStepSize;
+    // float sine = (sin( currentStepSine + phaseAcc)) * 255.0;
+    // int32_t current = 51076057;
+    // phaseAcc += current;
+    // double x = 2 * 3.14159265358979323846*phaseAcc;//StepSize;
+    // float sine = (sin(x)) * 255.0;
+    // Serial.println(sine);
+    // int32_t sine_int = sine;
+    // Vout = sine_int >> 24;
+    // Serial.println(Vout);
+    // float currentSine=  0.07472;
+    phaseAcc_sine += (currentStepSine * 255);
+    // double x = 2 * 3.14159265358979323846 * phaseAcc/180; // StepSize;
+    // float y= sin(0);
+    // Serial.println(phaseAcc_sine);
+    float sine = (sin(phaseAcc_sine)) * 127;
+    // Serial.println(sine);
 
-        int32_t sine_int = sine;
-        Vout = sine_int;
+    int32_t sine_int = sine;
+    Vout = sine_int;
 
-//Serial.println(sine_int);
-//  127*(1+sineLUT)
-//  if Vout > 127 Vout = 127
-
-
-}
+    // Serial.println(sine_int);
+    //   127*(1+sineLUT)
+    //   if Vout > 127 Vout = 127
+  }
 
   // Serial.println(sine_int);
   // int32_t Vout = phaseAcc >> 24;
