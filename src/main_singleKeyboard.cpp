@@ -45,11 +45,11 @@ Knobs knob3(3); // volume
 Knobs knob1(1); // waveform
 
 // Phase step sizes
-const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
-                               64351799, 68178356, 72232452, 76527617,
-                               81078186, 85899346, 91007187, 96418756};
-const float key_freq_sine[13] = {0, 0.07472, 0.079163, 0.08387, 0.088858, 0.094141, 0.099739,
-                                 0.10567, 0.111954, 0.118611, 0.125664, 0.133136, 0.141053};
+// const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
+//    64351799, 68178356, 72232452, 76527617,
+//    81078186, 85899346, 91007187, 96418756};
+
+const int16_t stepSizes[13] = {0, 779, 826, 875, 927, 982, 1040, 1102, 1168, 1237, 1311, 1389, 1471};
 
 // waveform
 volatile static int32_t Vout = 0;
@@ -58,13 +58,13 @@ volatile static int32_t wave_input = 0;
 const static char *NOTES[13] = {" ", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
 // Current Step
-volatile int32_t currentStepSize = 0;
-volatile int32_t currentStepSine = 0;
+volatile int32_t currentStepSize[3] = {0};
+
 // volatile char waveform[3] = [ "saw", "sin", "square" ];
 
 // keyMatrix
 volatile uint8_t keyArray[7];
-volatile int idxKey;
+volatile int idxKey[3] = {0};
 
 // Global Queue
 QueueHandle_t msgInQ;
@@ -131,12 +131,14 @@ void scanKeysTask(void *pvParameters)
         vTaskDelayUntil(&xLastWakeTime, xFrequency);
         // ReadCol
         setOutMuxBit(0x01, true);
-        int32_t localCurrentStepSize = 0;
-        int32_t localFreqSine = 0;
-        idxKey = 0;
-
+        int16_t localCurrentStepSize[3] = {0};
+        for (int i = 0; i < 3; i++)
+        {
+            idxKey[i] = 0;
+        }
         xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
 
+        uint8_t count = 0;
         for (int i = 0; i < 3; i++)
         {
             keyArray[i] = readCols(i);
@@ -145,14 +147,20 @@ void scanKeysTask(void *pvParameters)
             {
                 if ((keyArray[i] & idx) == 0)
                 {
-                    idxKey = i * 4 + j + 1;
+                    idxKey[count] = i * 4 + j + 1;
+                    count++;
+                    if (count > 2)
+                    {
+                        count = 2;
+                    }
                 }
                 j++;
             }
-            localCurrentStepSize = stepSizes[idxKey];
-            localFreqSine = key_freq_sine[idxKey];
         }
-
+        for (int i = 0; i < 3; i++)
+        {
+            localCurrentStepSize[i] = stepSizes[idxKey[i]];
+        }
         // read knobs
         keyArray[3] = readCols(3);
         keyArray[4] = readCols(4);
@@ -161,51 +169,49 @@ void scanKeysTask(void *pvParameters)
         knob1.decodeKnob(keyArray[4]);
 
         char keyState;
-        uint8_t activeKey = idxKey;
+        uint8_t activeKey[3] = {idxKey[0], idxKey[1], idxKey[2]};
         uint8_t octave = knob2.get_count();
         int shift = octave - 4;
-        if (shift == 0)
+        for (int i = 0; i < 3; i++)
         {
-            localCurrentStepSize = localCurrentStepSize;
-            localFreqSine = localFreqSine;
-        }
-        else if (shift > 0)
-        {
-            localCurrentStepSize = localCurrentStepSize << shift;
-            localFreqSine = localFreqSine << shift;
-        }
-        else if (shift < 0)
-        {
-            localCurrentStepSize = localCurrentStepSize >> -shift;
-            localFreqSine = localFreqSine >> -shift;
-        }
+            if (shift == 0)
+            {
+                localCurrentStepSize[i] = localCurrentStepSize[i];
+            }
+            else if (shift > 0)
+            {
+                localCurrentStepSize[i] = localCurrentStepSize[i] << shift;
+            }
+            else if (shift < 0)
+            {
+                localCurrentStepSize[i] = localCurrentStepSize[i] >> -shift;
+            }
 
-        // Serial.println(localCurrentStepSize);
+            // Serial.println(localCurrentStepSize);
 
-        if (activeKey == 0)
-        {
-            keyState = 'R';
-            activeKey = TX_Message[2];
-            TX_Message[0] = keyState;
-            TX_Message[1] = octave;
-            TX_Message[2] = activeKey;
+            if (activeKey == 0)
+            {
+                keyState = 'R';
+                activeKey[i] = TX_Message[2];
+                TX_Message[0] = keyState;
+                TX_Message[1] = octave;
+                TX_Message[2] = activeKey;
+            }
+            else
+            {
+                keyState = 'P';
+                TX_Message[0] = keyState;
+                TX_Message[1] = octave;
+                TX_Message[2] = activeKey[i];
+            }
+
+            // Sendign CAN frame
+            xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
+
+            xSemaphoreGive(keyArrayMutex);
+            // Serial.println(keyArray[0]);
+            __atomic_store_n(&currentStepSize[i], localCurrentStepSize[i], __ATOMIC_RELAXED);
         }
-        else
-        {
-            keyState = 'P';
-            TX_Message[0] = keyState;
-            TX_Message[1] = octave;
-            TX_Message[2] = activeKey;
-        }
-
-        // Sendign CAN frame
-        xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
-
-        xSemaphoreGive(keyArrayMutex);
-        // Serial.println(keyArray[0]);
-        __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
-        __atomic_store_n(&currentStepSine, localFreqSine, __ATOMIC_RELAXED);
-
     }
 }
 
@@ -240,7 +246,11 @@ void displayUpdateTask(void *pvParameters)
         u8g2.setCursor(64, 20);
         u8g2.print("Octave: ");
         u8g2.print(knob2.get_count());
-        u8g2.print(NOTES[idxKey]);
+        for (int i = 0; i < 3; i++)
+        {
+            u8g2.print(" ");
+            u8g2.print(NOTES[idxKey[i]]);
+        }
 
         xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
         // Print CAN frame
@@ -253,8 +263,8 @@ void displayUpdateTask(void *pvParameters)
         u8g2.print(RX_Message[2]);
         xSemaphoreGive(RX_MessageMutex);
 
-        //line 3:
-        // volume print
+        // line 3:
+        //  volume print
         u8g2.setCursor(2, 30);
         u8g2.print("Vol:");
         u8g2.setCursor(30, 30);

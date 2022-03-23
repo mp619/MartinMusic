@@ -134,92 +134,74 @@ public:
         return count_knob;
     }
 
-    int32_t get_wave(int32_t wave_in, int32_t currentStepSize)
+    int32_t get_wave(int32_t wave_in, int32_t currentStepSize[3])
     {
-        static int32_t phaseAcc = 0;
-        static int32_t phaseAcc_new = 0;
+        static int32_t phaseAcc[3] = {0,0,0};
+        static int32_t phaseAcc_new[3] = {0,0,0};
         static int32_t up = 1;
         static int32_t Vout = 0;
-        // sawtooth
-        if (wave_in == 0 |wave_in == 1 | wave_in == 2)
+        int32_t Total = 0;
+        //polyphony
+        for (int i = 0; i < 3; i++)
         {
-            phaseAcc += currentStepSize;
-            Vout = phaseAcc >> 24;
-        }
-        //  square
-        if (wave_in == 3 | wave_in == 4)
-        {
-            phaseAcc += currentStepSize;
-            if (phaseAcc > 1073741824)
+            // sawtooth
+            if (wave_in == 0 | wave_in == 1 | wave_in == 2)
             {
-                Vout = 127;
+                phaseAcc[i] += currentStepSize[i];
+                Vout = phaseAcc[i] >> 24;
             }
-            else
+            //  square
+            if (wave_in == 3 | wave_in == 4)
             {
-                Vout = -128;
+                phaseAcc[i] += currentStepSize[i];
+                if (phaseAcc[i] > 1073741824)
+                {
+                    Vout = 127;
+                }
+                else
+                {
+                    Vout = -128;
+                }
             }
-        }
-        // triangular
-        else if (wave_in == 5 | wave_in == 6)
-        {
-            if (up == 1)
+            // triangular
+            else if (wave_in == 5 | wave_in == 6)
             {
-                phaseAcc_new += currentStepSize * 2;
-            }
-            else if (up == 0)
-            {
-                phaseAcc_new -= currentStepSize * 2;
-            }
-            if (phaseAcc_new < phaseAcc & up == 1)
-            {
-                up = 0;
-            }
-            else if (phaseAcc_new > phaseAcc & up == 0)
-            {
-                up = 1;
-            }
-            if (up == 1)
-            {
-                phaseAcc += currentStepSize * 2;
-            }
-            else if (up == 0)
-            {
-                phaseAcc -= currentStepSize * 2;
-            }
-            phaseAcc_new = phaseAcc;
-            Vout = phaseAcc >> 24;
-            // Serial.print("phaseAcc");
-        }
-        //*****************sinewave
-        // else if (knob1.get_count() == 7 | knob1.get_count() == 8)
-        // {
-        // static float phaseAcc_sine = 0;
-        //     // key_freq_sine[id] = f / f_s * 2 * M_PI;
-        //     // phaseAcc += currentStepSize;
-        //     // float sine = (sin( currentStepSine + phaseAcc)) * 255.0;
-        //     // int32_t current = 51076057;
-        //     // phaseAcc += current;
-        //     // double x = 2 * 3.14159265358979323846*phaseAcc;//StepSize;
-        //     // float sine = (sin(x)) * 255.0;
-        //     // Serial.println(sine);
-        //     // int32_t sine_int = sine;
-        //     // Vout = sine_int >> 24;
-        //     // Serial.println(Vout);
-        //     // float currentSine=  0.07472;
-        //     phaseAcc_sine += (currentStepSine * 255);
-        //     // double x = 2 * 3.14159265358979323846 * phaseAcc/180; // StepSize;
-        //     // float y= sin(0);
-        //     // Serial.println(phaseAcc_sine);
-        //     float sine = (sin(phaseAcc_sine)) * 127;
-        //     // Serial.println(sine);
+                if (up == 1)
+                {
+                    phaseAcc_new[i] += currentStepSize[i] * 2;
+                }
+                else if (up == 0)
+                {
+                    phaseAcc_new[i] -= currentStepSize[i] * 2;
+                }
+                if (phaseAcc_new[i] < phaseAcc[i] & up == 1)
+                {
+                    up = 0;
+                }
+                else if (phaseAcc_new[i] > phaseAcc[i] & up == 0)
+                {
+                    up = 1;
+                }
+                if (up == 1)
+                {
+                    phaseAcc[i] += currentStepSize[i] * 2;
+                }
+                else if (up == 0)
+                {
+                    phaseAcc[i] -= currentStepSize[i] * 2;
+                }
+                phaseAcc_new[i] = phaseAcc[i];
+                Vout = phaseAcc[i] >> 24;
 
-        //     int32_t sine_int = sine;
-        //     Vout = sine_int;
-
-        //     // Serial.println(sine_int);
-        //     //   127*(1+sineLUT)
-        //     //   if Vout > 127 Vout = 127
-        // }
+            }
+            
+            Total += phaseAcc[i];
+        }
+        if (Total > 65536)
+        {
+            Total = true;
+        }
+        Vout = Total >> 8;
         return Vout;
     }
 };
