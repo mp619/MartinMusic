@@ -134,74 +134,61 @@ public:
         return count_knob;
     }
 
-    int32_t get_wave(int32_t wave_in, int32_t currentStepSize[3])
+    int32_t get_wave(int32_t wave_in, int32_t currentStepSize)
     {
-        static int32_t phaseAcc[3] = {0,0,0};
-        static int32_t phaseAcc_new[3] = {0,0,0};
+        static int32_t phaseAcc = 0;
+        static int32_t phaseAcc_new = 0;
         static int32_t up = 1;
-        static int32_t Vout = 0;
         int32_t Total = 0;
-        //polyphony
-        for (int i = 0; i < 3; i++)
-        {
             // sawtooth
-            if (wave_in == 0 | wave_in == 1 | wave_in == 2)
-            {
-                phaseAcc[i] += currentStepSize[i];
-                Vout = phaseAcc[i] >> 24;
-            }
-            //  square
-            if (wave_in == 3 | wave_in == 4)
-            {
-                phaseAcc[i] += currentStepSize[i];
-                if (phaseAcc[i] > 1073741824)
-                {
-                    Vout = 127;
-                }
-                else
-                {
-                    Vout = -128;
-                }
-            }
-            // triangular
-            else if (wave_in == 5 | wave_in == 6)
-            {
-                if (up == 1)
-                {
-                    phaseAcc_new[i] += currentStepSize[i] * 2;
-                }
-                else if (up == 0)
-                {
-                    phaseAcc_new[i] -= currentStepSize[i] * 2;
-                }
-                if (phaseAcc_new[i] < phaseAcc[i] & up == 1)
-                {
-                    up = 0;
-                }
-                else if (phaseAcc_new[i] > phaseAcc[i] & up == 0)
-                {
-                    up = 1;
-                }
-                if (up == 1)
-                {
-                    phaseAcc[i] += currentStepSize[i] * 2;
-                }
-                else if (up == 0)
-                {
-                    phaseAcc[i] -= currentStepSize[i] * 2;
-                }
-                phaseAcc_new[i] = phaseAcc[i];
-                Vout = phaseAcc[i] >> 24;
-
-            }
-            
-            Total += phaseAcc[i];
-        }
-        if (Total > 65536)
+        if (wave_in == 0 | wave_in == 1 | wave_in == 2)
         {
-            Total = true;
+            phaseAcc += currentStepSize;
+            return phaseAcc >> 24;
         }
-        Vout = Total >> 8;
-        return Vout;
+        //  square
+        if (wave_in == 3 | wave_in == 4)
+        {
+            phaseAcc += currentStepSize;
+            if (phaseAcc > 1073741824)
+            {
+                return 127;
+            }
+            else
+            {
+                return -128;
+            }
+        }
+        // triangular
+        else if (wave_in == 5 | wave_in == 6)
+        {
+            if (up == 1)
+            {
+                phaseAcc_new += currentStepSize * 2;
+            }
+            else if (up == 0)
+            {
+                phaseAcc_new -= currentStepSize * 2;
+            }
+            if (phaseAcc_new < phaseAcc & up == 1)
+            {
+                up = 0;
+            }
+            else if (phaseAcc_new > phaseAcc & up == 0)
+            {
+                up = 1;
+            }
+            if (up == 1)
+            {
+                phaseAcc += currentStepSize * 2;
+            }
+            else if (up == 0)
+            {
+                phaseAcc -= currentStepSize * 2;
+            }
+        phaseAcc_new = phaseAcc;
+        return phaseAcc >> 24;
+
+        }
     }
 };
