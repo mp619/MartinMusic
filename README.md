@@ -42,6 +42,6 @@ Our team has performed extensive resource and real time system analysis to ensur
 - Upload onto STM32 using
 
 ## Links
-- [Documentation]
+- [Documentation](https://github.com/mp619/MartinMusic/tree/master/doc)
 - [Video]
-- [Source Code]
+- [Source Code](https://github.com/mp619/MartinMusic/tree/master/src)
