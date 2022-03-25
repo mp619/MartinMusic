@@ -115,7 +115,7 @@ octave & sampleISR (read), scanKey (write to local),&\
 CurrentMode & scanKey (write), display (read) &\
 :::
 
-![akt text](/resources/Dependencies.png)
+![akt text](doc/resources/Dependencies.png)
 
 # Timing Analysis
 
