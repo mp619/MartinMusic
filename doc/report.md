@@ -91,26 +91,22 @@ atomic access and critical sections
 (Table [\[table:01\]](#table:01){reference-type="ref"
 reference="table:01"}):
 
-::: {.tabular}
-\|c\|c\|c\| **Shared Resource & Threads/ ISR and type of access &
-Strategy to avoid data corruption\
-**
-
-KeyArray & ScanKey (write), displayUpdate (read) & Mutex, Semaphore\
-idxKey & ScanKey (write), displayUpdate (read) & ?add Mutex?\
-RXmessage & CANRXISR (write), decode (read) & queue\
-& decode (write to local) & Mutex, atomic access\
-& displayUpdate (read) & Mutex, Semaphore\
-TXmessage & ScanKey (write), CANTXISR (read) & Queue\
-position & scanKey (write), (read) & atomic access\
-& sampleISR, display (read) & mutex (to do?)\
-west, est & scanKey (write) & atomic access && displayUpdate (read) &
-mutex (to do?)\
-middle & decode (write), scanKey (read) & atomic access\
-octave & sampleISR (read), scanKey (write to local),&\
-&& scanKey (write)& atomic access\
-CurrentMode & scanKey (write), display (read) &\
-:::
+| **Shared Resource** | **Threads/ ISR and type of access**                   | **Strategy to avoid data corruption** |
+|-----------------------|------------------------------------------------------------------|-----------------------------------|
+| KeyArray              | ScanKey (write), displayUpdate (read)                            | Mutex, Semaphore                  |
+| idxKey                | ScanKey (write), displayUpdate (read)                            | ?add Mutex?                       |
+| RXmessage             | CAN_RX_ISR (write), decode (read)  | queue                             |
+|                       | decode (write to local)                                          | Mutex, atomic access              |
+|                       | displayUpdate (read)                                             | Mutex, Semaphore                  |
+| TXmessage             | ScanKey (write), CAN_TX_ISR (read) | Queue                             |
+| position              | scanKey (write), (read)                                          | atomic access                     |
+|                       | sample_ISR, display (read)                        | mutex (to do?)                    |
+| west, est             | scanKey (write)                                                  | atomic access                     |
+|                       |                                                                  | displayUpdate (read)              | mutex (to do?) |
+| middle                | decode (write), scanKey (read)                                   | atomic access                     |
+| octave                | sampleISR (read), scanKey (write to local),                      |                                   |
+|                       |                                                                  | scanKey (write)                   | atomic access  |
+| CurrentMode           | scanKey (write), display (read)                                  |                                   |
 
 ![akt text](doc/resources/Dependencies.png)
 
