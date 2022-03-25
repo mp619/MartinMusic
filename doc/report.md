@@ -16,11 +16,15 @@ in the specification, and the following advanced features:
 
 -   Polyphony
 
--   Octave Control
-
 -   Advanced Tone Waveform
 
--   Auto detection and Handshaking
+-   Handshaking and Auto detection for multiple boards
+
+-   Octave Control and automatic octave setting for multiple boards
+
+-   Classes for knobs, waves and display
+
+-   User interface for intuitive interaction with synthesiser parameters
 
 # Classes and Headers
 
@@ -34,6 +38,9 @@ include:
     StackSynthesizer. It includes methods to initialize, read, decode
     and get the count of each of the knobs. As well, implementations of
     decay functions for Knob 0.
+
+|![Knobs](resources/Knobs.png)|
+|:--:|
 
 -   **Display**: Manages the user interface on the OLED display.
     Includes methods for initialization of the display and printing
@@ -157,7 +164,7 @@ Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#82
 
 ## Critical Instant Analysis
 
-Fig.2 is the result of our critical instant analysis. In the figure, it can be noticed the flow between threads in order of priority and how all the deadlines are meet within the time period (after executing all threads, there is stil a margin of time before the start of the next instance of the thread, even in the worst case scenario.   
+Fig.2 (note the diagram is representative and not to scale) is the result of our critical instant analysis. The figure highlights the flow between threads (in order of priority) and how all the deadlines are met within that time period. After executing all threads, there is stil a margin of time before the start of the next instance of the thread, even in the worst case scenario.   
 
 |![Timeline](resources/timing.png)|
 |:--:|
