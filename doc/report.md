@@ -121,14 +121,9 @@ CurrentMode & scanKey (write), display (read) &\
 
 ## Performance Evaluation
 
-Evaluation of our system performance was conducted through the
-measurement/calculation of all tasks and ISR execution time ,interval
-time and CPU utilization.We measure the execution time of our tasks and
-ISR by utilising the method set out in Lab 2. The calculation is an
-average across 32 iterations of that task.\
-\
+Evaluation of our system performance was conducted through the measurement/calculation of all tasks and ISR execution time ,interval time and CPU utilization.We measure the execution time of our tasks and ISR by utilising the method set out in Lab 2. The calculation is an average across 32 iterations of that task.
 
-``` {.cpp fontsize="\\footnotesize"}
+``` 
 uint32_t StartTotalTime = micros();
 for(int i = 0 ; i < 32 ; i++){.... Task ....}
 uint32_t TotalTime = micros()-StartTotalTime;
@@ -137,15 +132,13 @@ Serial.println("Average Task Time:");
 Serial.println(TotalTime);
 ```
 
-cpp
+Initiation time &tau;<sub>i</sub> is defined as the time between initiations of particular task. We get our CPU utilization U by the following: 
 
-Initiation time ($\tau$) is defined as the time between initiations of
-particular task.
+<center>
+U = &sum;<sub>i</sub> &lceil;T<sub>i</sub> &#8260; &tau;<sub>i</sub> &rceil;
+</center>
 
-Applying: $$U = \sum_{i} \frac{T_i}{\tau_i}$$ We get our CPU utilization
-U. $T_i$ : Execution time , $\tau_i$ : Initiation Interval. We calculate
-these for every ISR and Thread. Giving us the ability to establish
-correct priorities and timing.
+We get our CPU utilization U .Execution time , Initiation Interval. We calculate these for every ISR and Thread. Giving us the ability to establish correct priorities and timing.
 
 | Task | Priority | Initiation Interval (&tau;<sub>i</sub>) [ms] | Execution Time (T<sub>i</sub>) [ms]| &lceil;<sup>&tau;<sub>n</sub></sup>&#8260;<sub>&tau;<sub>i</sub></sub>&rceil; T<sub>i</sub> [ms]| CPU Utilization [%]|
 |-------------------|-----|-----------|---------|---------|--------|
@@ -157,7 +150,7 @@ decode              | 3   | 25.2      | 0.002   |  0.008  | 0.008  |
 CAN TX Task         | 1   | 60        | 0.001   | 0.0016  | 0.0016 | 
 Total               |     |           |         | 67.7316 | 67.7316|
 
-
+Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#8260;<sub>&tau;<sub>i</sub></sub>&rceil; T<sub>i</sub> is less than &tau;<sub>n</sub> = 100. We can confirm that all tasks are executed with the longest task interval and we will not experience any deadline failures.
 
 
 ## Critical Instant Analysis
