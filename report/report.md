@@ -115,6 +115,8 @@ octave & sampleISR (read), scanKey (write to local),&\
 CurrentMode & scanKey (write), display (read) &\
 :::
 
+![akt text](/resources/Dependencies.png)
+
 # Timing Analysis
 
 ## Performance Evaluation
@@ -164,3 +166,4 @@ correct priorities and timing.
 :::
 
 ## Critical Instant Analysis
+![akt text](/resources/tl.PNG)
