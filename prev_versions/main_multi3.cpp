@@ -218,7 +218,7 @@ void scanKeysTask(void *pvParameters)
 }
 
 void displayUpdateTask(void *pvParameters)
-{
+{  
   const TickType_t xFrequency = 100 / portTICK_PERIOD_MS;
   TickType_t xLastWakeTime = xTaskGetTickCount();
   uint8_t y_1 = 10;
@@ -234,7 +234,13 @@ void displayUpdateTask(void *pvParameters)
   uint8_t centre = 60;
   while (1)
   {
+    
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
+      //Make frame
+
+    u8g2.clearBuffer();                 // clear the internal memory
+
+    u8g2.setFont(u8g2_font_5x7_tr); // choose a suitable font
     //Get Centre
     u8g2.setCursor(north, y_1);
     u8g2.print("Receiver");
@@ -284,8 +290,15 @@ void displayUpdateTask(void *pvParameters)
     }
     u8g2.setCursor(west, y_1);
     u8g2.print("Single");     
-    u8g2.clearBuffer();                 // clear the internal memory
-    u8g2.setFont(u8g2_font_ncenB08_tr); // choose a suitable font
+                  // clear the internal memory
+    //u8g2.setFont(u8g2_font_ncenB08_tr); // choose a suitable font
+
+    
+    u8g2.drawFrame(2,1,126,31);
+    u8g2.sendBuffer(); // transfer internal memory to the display     // Toggle LED   
+    digitalToggle(LED_BUILTIN);
+
+
   }
 }
 
