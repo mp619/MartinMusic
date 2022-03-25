@@ -38,8 +38,8 @@ Our team has performed extensive resource and real time system analysis to ensur
 ## Setup
 - For editing and flashing - VS Code with Platformio extension is required
 - Clone all contents
-- Build \src folder using 
-- Upload onto STM32 using
+- Build \src folder using ![BuildIcon](/doc/resources/Build.PNG)
+- Upload onto STM32 using ![UploadIcon](/doc/resources/Upload.PNG)
 
 ## Links
 - [Documentation](https://github.com/mp619/MartinMusic/tree/master/doc)
