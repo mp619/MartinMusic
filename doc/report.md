@@ -1,10 +1,8 @@
 
-| Name | CID|
-| :--- | ---- |
-|Sam Taylor  | 01705109 |
-|Martin Prusa | 01705109 |
-|Matilde Piccoli | 01764158 |
-|Salman Dhaif | 01722410 |
+Sam Taylor, 01705109
+Martin Prusa, 01705109 
+Matilde Piccoli, 01764158
+Salman Dhaif, 01722410
 
 # Introduction
 
