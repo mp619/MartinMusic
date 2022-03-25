@@ -118,7 +118,7 @@ reference="table:01"}):
 
 Evaluation of our system performance was conducted through the measurement/calculation of all tasks and ISR execution time ,interval time and CPU utilization.We measure the execution time of our tasks and ISR by utilising the method set out in Lab 2. The calculation is an average across 32 iterations of that task.
 
-``` 
+```cpp 
 uint32_t StartTotalTime = micros();
 for(int i = 0 ; i < 32 ; i++){.... Task ....}
 uint32_t TotalTime = micros()-StartTotalTime;
