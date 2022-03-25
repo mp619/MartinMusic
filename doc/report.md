@@ -156,6 +156,9 @@ Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#82
 
 
 ## Critical Instant Analysis
+
+Fig.2 is the result of our critical instant analysis. In the figure, it can be noticed the flow between threads in order of priority and how all the deadlines are meet within the time period (after executing all threads, there is stil a margin of time before the start of the next instance of the thread, even in the worst case scenario.   
+
 |![Timeline](resources/timing.png)|
 |:--:|
 | <b>Fig.2 - Task and ISR Timeline</b>|
