@@ -80,8 +80,12 @@ Our system concurrently executes multiple threads to operate reliably.
 Due to threads accessing global/shared variables and resources, as well
 as the presence of ISR, it is necessary to ensure we analyse task
 inter-dependencies to avoid deadlocking
-(Figure [\[figure:01\]](#figure:01){reference-type="ref"
-reference="figure:01"}).\
+(Fig.1)
+
+|![Dependencies](resources/Dependencies.png)|
+|:--:|
+| <b>Fig.1 - Dependancy FlowChart</b>|
+
 When it comes to data shared between concurrent systems, there are
 multiple risks: the data is modified by multiple tasks at the same time
 and the first change is overwritten; the data should be modify by a task
@@ -89,8 +93,7 @@ but is blocked by another task with lower priority; \... .\
 The following analysis aims to assure that the data exchange in our code
 is thread-safe, by using features such as Mutex and Semaphores, Queues,
 atomic access and critical sections
-(Table [\[table:01\]](#table:01){reference-type="ref"
-reference="table:01"}):
+(Tab.1)
 
 | **Shared Resource** | **Threads/ ISR and type of access**                   | **Strategy to avoid data corruption** |
 |-----------------------|------------------------------------------------------------------|-----------------------------------|
@@ -108,10 +111,7 @@ reference="table:01"}):
 | octave                | sampleISR (read), scanKey (write to local),                      |                                   |
 |                       |                                                                  | scanKey (write)                   | atomic access  |
 | CurrentMode           | scanKey (write), display (read)                                  |                                   |
-
-|![Dependencies](resources/Dependencies.png)|
-|:--:|
-| <b>Fig.1 - Dependancy FlowChart</b>|
+| |<b>Tab.1 - Shared resourses and protection</b>|
 
 # Timing Analysis
 
@@ -150,6 +150,6 @@ Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#82
 
 
 ## Critical Instant Analysis
-|![Timeline](resources/tl(1).PNG)|
+|![Timeline](resources/tl (1).PNG)|
 |:--:|
 | <b>Fig.2 - Task and ISR Timeline</b>|
