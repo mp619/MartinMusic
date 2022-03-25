@@ -108,7 +108,9 @@ reference="table:01"}):
 |                       |                                                                  | scanKey (write)                   | atomic access  |
 | CurrentMode           | scanKey (write), display (read)                                  |                                   |
 
-![akt text](doc/resources/Dependencies.png)
+|![Dependencies](resources/Dependencies.png)|
+|:--:|
+| <b>Fig.1 - Dependancy FlowChart</b>|
 
 # Timing Analysis
 
