@@ -190,4 +190,31 @@ public:
 
         }
     }
+
+    double vLinDecay(int32_t _time){
+
+        double decay =  1/(1 + (count_knob*1e-5*_time));
+        //Serial.println(decay);
+        // set threshold in smarter way, function of volume level maybe
+        double thresh = 0.001;
+        if(decay > thresh){
+            return decay;
+        }else{
+          return 0;  
+        }
+    }
+
+    double vExpDecay(int32_t _time){
+
+        double decay =  1/exp(count_knob*1e-5*_time);
+        //Serial.println(decay);
+        // set threshold in smarter way, function of volume level maybe
+        double thresh = 0.001;
+        if(decay > thresh){
+            return decay;
+        }else{
+          return 0;  
+        }
+    }
+    
 };
