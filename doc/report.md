@@ -51,23 +51,23 @@ include:
 Continouing with the idea of a maintainable code we have implemented separate threads for each task. Our system consists of four threads and three interrupts (in order of
 priority):
 
--   **sampleISR**: interrupt responsible for updating Vout, the voltage
-    output level dependent on the key pressed, volume, type of waveform
-    and octave;
+-   **sampleISR**: Interrupt responsible for updating Vout, the
+    output voltage level dependent on the pressed key, volume, type of waveform
+    and perfoming optional decay. 
 
--   **CANRXISR**: interrupt responsible for the reception of data from
-    the CAN bus
+-   **CANRXISR**: Interrupt responsible for the reception of data from
+    the CAN bus. 
 
--   **CANTXISR**: interrupt responsible for the transmission of data via
-    the CAN bus
+-   **CANTXISR**: Interrupt responsible for the transmission of data via
+    the CAN bus.
 
--   **decode**: thread managing the decoding of the information coming
+-   **decode**: Thread managing the decoding of the information coming
     from the CAN bus (\...)
 
--   **CANTX**: thread responsible for the collection of data to be
+-   **CANTX**: Thread responsible for the collection of data to be
     transmitted via CAN (..generating corresponding interrupt\...)
 
--   **ScanKey**: thread managing the decoding of inputs form the
+-   **ScanKey**: Thread managing the decoding of inputs form the
     keyboard and knobs
 
 -   **displayUpdate**: thread resbonsible for the generation of the LED
@@ -150,6 +150,6 @@ Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#82
 
 
 ## Critical Instant Analysis
-|![Timeline](resources/tl.PNG)|
+|![Timeline](resources/tl(1).PNG)|
 |:--:|
 | <b>Fig.2 - Task and ISR Timeline</b>|
