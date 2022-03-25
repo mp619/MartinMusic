@@ -39,6 +39,7 @@ Our team has performed extensive resource and real time system analysis to ensur
 - For editing and flashing - VS Code with Platformio extension is required
 - Clone all contents
 - Please follow this [guide](https://hank.feild.org/courses/common/cpp-compiler.html) to install a c++ compiler for all systems
+- Install Platformio as a VS code extension
 - Goto Platformio Home using ![home](/doc/resources/Home.PNG) on the bottom left of VS code
 - Install U8g2 display driver library and STM32duino FreeRTOS library
 - Enable CAN module by opening: ~\.platformio\packages\frameworkarduinoststm32\cores\arduino\stm32\stm32yyxx_hal_conf.h
