@@ -147,23 +147,18 @@ U. $T_i$ : Execution time , $\tau_i$ : Initiation Interval. We calculate
 these for every ISR and Thread. Giving us the ability to establish
 correct priorities and timing.
 
-::: {.center}
-[\[tab:table1\]]{#tab:table1 label="tab:table1"}
+| Task | Priority | Initiation Interval (&tau;<sub>i</sub>) [ms] | Execution Time (T<sub>i</sub>) [ms]| &lceil;<sup>&tau;<sub>n</sub></sup>&#8260;<sub>&tau;<sub>i</sub></sub>&rceil; T<sub>i</sub> [ms]| CPU Utilization [%]|
+|-------------------|-----|-----------|---------|---------|--------|
+sampleISR           | ISR | 0.04545   | 0.02    |  44     | 44     | 
+CAN TX ISR          | ISR | 1.67      | 0.003   |  0.179  | 0.179  | 
+scanKeys            | 4   | 50        | 0.410   | 0.82    | 0.82   |
+displayUpdate       | 2   | 100       | 22.732  | 22.732  | 22.732 | 
+decode              | 3   | 25.2      | 0.002   |  0.008  | 0.008  | 
+CAN TX Task         | 1   | 60        | 0.001   | 0.0016  | 0.0016 | 
+Total               |     |           |         | 67.7316 | 67.7316|
 
-::: {#tab:table1}
-     **Task**      **Interval Time ($\tau$)**   **Execution Time (T)**   **CPU Utilization (U)**
-  --------------- ---------------------------- ------------------------ -------------------------
-     sampleISR            45.45 $\mu$s                20 $\mu$s                   44`%`
-    CAN TX ISR              1.67 ms                    3 $\mu$s                  0.17`%`
-     scanKeys                50 ms                    410 $\mu$s                 0.82`%`
-   displayUpdate             100 ms                   22.732 ms                 22.732`%`
-      decode                25.2 ms                    2 $\mu$s                 0.008`%`
-    CAN TX Task               60ms                     1 $\mu$s                 0.0016`%`
-       Total                                                                   67.7316`%`
 
-  : Task and ISR Performances
-:::
-:::
+
 
 ## Critical Instant Analysis
 ![akt text](/resources/tl.PNG)
