@@ -142,9 +142,9 @@ We get our CPU utilization U .Execution time , Initiation Interval. We calculate
 sampleISR           | ISR | 0.04545   | 0.02    |  44     | 44     | 
 CAN TX ISR          | ISR | 1.67      | 0.003   |  0.179  | 0.179  | 
 scanKeys            | 4   | 50        | 0.410   | 0.82    | 0.82   |
-displayUpdate       | 2   | 100       | 22.732  | 22.732  | 22.732 | 
 decode              | 3   | 25.2      | 0.002   |  0.008  | 0.008  | 
-CAN TX Task         | 1   | 60        | 0.001   | 0.0016  | 0.0016 | 
+CAN TX Task         | 2   | 60        | 0.001   | 0.0016  | 0.0016 | 
+displayUpdate       | 1   | 100       | 22.732  | 22.732  | 22.732 | 
 Total               |     |           |         | 67.7316 | 67.7316|
 
 Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#8260;<sub>&tau;<sub>i</sub></sub>&rceil; T<sub>i</sub> is less than &tau;<sub>n</sub> = 100. We can confirm that all tasks are executed with the longest task interval and we will not experience any deadline failures.
