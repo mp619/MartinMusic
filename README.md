@@ -38,8 +38,7 @@ Our team has performed extensive resource and real time system analysis to ensur
 ## Setup
 - For editing and flashing - VS Code with Platformio extension is required
 - Clone all contents
-- For Windows:
-  - Please follow this [guide](https://code.visualstudio.com/docs/cpp/config-mingw) to install a c++ compiler
+- Please follow this [guide](https://hank.feild.org/courses/common/cpp-compiler.html) to install a c++ compiler for all systems
 - Build \src folder using ![BuildIcon](/doc/resources/Build.PNG) on bottom left of VS Code
 - Connect STM32 to PC using micro USB port
 - Upload onto STM32 using ![UploadIcon](/doc/resources/Upload.PNG) on bottom left of VS Code
