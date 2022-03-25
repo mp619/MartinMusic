@@ -122,23 +122,6 @@ bool setOutHandshake(uint8_t bitIdx, const bool value)
   return detect;
 }
 
-// Send handshake CAN
-void handshake(void)
-{
-  // Transmitt handshaking signal of position 1 onto CAN bus
-  uint8_t TX_Message_H[8] = {0};
-  TX_Message_H[0] = 'H';
-  TX_Message_H[1] = ID_hash >> 24;
-  TX_Message_H[2] = ID_hash >> 16;
-  TX_Message_H[3] = ID_hash >> 8;
-  TX_Message_H[4] = ID_hash;
-  TX_Message_H[5] = position;
-
-  if (CurrentMode == false)
-  {
-    xQueueSend(msgOutQ, TX_Message_H, portMAX_DELAY);
-  }
-}
 
 // Read Matrix
 uint8_t readCols(int row)
@@ -205,6 +188,24 @@ void CAN_RX_ISR(void)
   uint32_t ID;
   CAN_RX(ID, RX_Message_ISR);
   xQueueSendFromISR(msgInQ, RX_Message_ISR, NULL);
+}
+
+// Send handshake CAN
+void handshake(void)
+{
+  // Transmitt handshaking signal of position 1 onto CAN bus
+  uint8_t TX_Message_H[8] = {0};
+  TX_Message_H[0] = 'H';
+  TX_Message_H[1] = ID_hash >> 24;
+  TX_Message_H[2] = ID_hash >> 16;
+  TX_Message_H[3] = ID_hash >> 8;
+  TX_Message_H[4] = ID_hash;
+  TX_Message_H[5] = position;
+
+  if (CurrentMode == false)
+  {
+    xQueueSend(msgOutQ, TX_Message_H, portMAX_DELAY);
+  }
 }
 
 void findPosition()
