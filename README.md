@@ -25,7 +25,7 @@ Our team has performed extensive resource and real time system analysis to ensur
 
 - [STM32L432KC MCU](https://www.st.com/en/evaluation-tools/nucleo-l432kc.html) 
 - Piano attachement
-- VS Code - Platformio
+- VS Code - [Platformio](https://platformio.org/)
 - C++ Libraries
   - Arduino.h
   - U8g2lib.h
@@ -36,4 +36,5 @@ Our team has performed extensive resource and real time system analysis to ensur
   - local - wave.h
 
 ## Setup
+- For editing and flashing - VS Code with Platformio extension is required
 - 
