@@ -5,6 +5,7 @@
 #include <ES_CAN.h>
 #include <knobs.h>
 #include <display.h>
+#include <wave.h>
 
 // Constants
 const uint32_t interval = 100; // Display update interval
@@ -47,16 +48,12 @@ const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
                                64351799, 68178356, 72232452, 76527617,
                                81078186, 85899346, 91007187, 96418756};
 
-static int32_t phaseAcc = 0;
-
 const static char *NOTES[13] = {" ", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
-
-// Current Step
-volatile int32_t currentStepSize = 0;
 
 // keyMatrix
 volatile uint8_t keyArray[7];
 volatile int idxKey;
+volatile int octave;
 
 // Handshake
 volatile bool _west;
@@ -68,6 +65,12 @@ volatile bool middle = false;
 // display
 Display displayMaster(true);
 Display displaySlave(false);
+
+// wave
+Sine sine;
+Saw saw;
+Tri tri;
+Squ squ;
 
 // Global Queue
 QueueHandle_t msgInQ;
@@ -144,15 +147,35 @@ uint8_t readCols(int row)
   return value;
 }
 
+int32_t chooseWave(int wave)
+{
+  switch(wave)
+  {
+    case 0:
+      return tri.makeVout(idxKey, octave);
+    case 1:
+      return squ.makeVout(idxKey, octave);
+    case 2:
+      return saw.makeVout(idxKey, octave);
+    case 3:
+      return sine.makeVout(idxKey, octave);
+    default:
+      return sine.makeVout(idxKey, octave);
+  }
+}
+
 void sampleISR()
 {
-  uint8_t wave_input;
-  wave_input = knob1.get_count();
-  int32_t Vout = knob1.get_wave(wave_input, currentStepSize);
+  int32_t Vout = chooseWave(knob1.get_count());
+  if (Vout > 255)
+  {
+    Vout = 255;
+  }
   Vout = Vout >> (8 - knob3.get_count() / 2);
+
   if(position == 0)
   {
-    analogWrite(OUTR_PIN, Vout + 128);
+    analogWrite(OUTR_PIN, Vout);
   }
 }
 
@@ -169,7 +192,6 @@ void scanKeysTask(void *pvParameters)
   uint8_t TX_Message[8] = {0};
   const TickType_t xFrequency = 50 / portTICK_PERIOD_MS;
   TickType_t xLastWakeTime = xTaskGetTickCount();
-  uint8_t octave = 0;
 
   while (1)
   {
@@ -177,7 +199,7 @@ void scanKeysTask(void *pvParameters)
     // ReadCol
     setOutMuxBit(0x01, true);
     int32_t localCurrentStepSize = 0;
-    idxKey = 0;
+    int localIdxKey = 0;
 
     xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
 
@@ -189,12 +211,20 @@ void scanKeysTask(void *pvParameters)
       {
         if ((keyArray[i] & idx) == 0)
         {
-          idxKey = i * 4 + j + 1;
+          localIdxKey = i * 4 + j + 1;
         }
         j++;
       }
-      localCurrentStepSize = stepSizes[idxKey];
     }
+
+    // read volume knobs
+    keyArray[3] = readCols(3);
+    keyArray[4] = readCols(4);
+    knob3.decodeKnob(keyArray[3]);
+    knob2.decodeKnob(keyArray[3]);
+    knob1.decodeKnob(keyArray[4]);
+
+    xSemaphoreGive(keyArrayMutex);
 
     //Poll for position
     bool west_local;
@@ -224,56 +254,27 @@ void scanKeysTask(void *pvParameters)
     __atomic_store_n(&_west, west_local, __ATOMIC_RELAXED);
     __atomic_store_n(&_east, east_local, __ATOMIC_RELAXED);
 
-    // read volume knobs
-    keyArray[3] = readCols(3);
-    keyArray[4] = readCols(4);
-    knob3.decodeKnob(keyArray[3]);
-    knob2.decodeKnob(keyArray[3]);
-    knob1.decodeKnob(keyArray[4]);
-
     char keyState;
-    uint8_t activeKey = idxKey;
-    uint8_t octave;
+    uint8_t activeKey = localIdxKey;
+    uint8_t localOctave;
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
     if (RX_Message[0] == 'P') //Check if recieved is pressed, then use position to edit octave
     {
-      localCurrentStepSize = stepSizes[RX_Message[2]];
-      octave = knob2.get_count() + RX_Message[3];
+      localIdxKey = RX_Message[2];
+      localOctave = knob2.get_count() + RX_Message[3];
     } 
     else //Local octave selection (For master)
     {
-      localCurrentStepSize = localCurrentStepSize;
-      octave = knob2.get_count();
+      localOctave = knob2.get_count();
     }
     xSemaphoreGive(RX_MessageMutex);
-
-
-    //Provide shift according to octave
-    int shift = octave - 4;
-    if (shift == 0)
-    {
-      localCurrentStepSize = localCurrentStepSize;
-    }
-    else if (shift > 0)
-    {
-      localCurrentStepSize = localCurrentStepSize << shift;
-    }
-    else if (shift < 0)
-    {
-      localCurrentStepSize = localCurrentStepSize >> -shift;
-    }
-
-    //Serial.print("scanKeysTask: ");
-    //Serial.println(localCurrentStepSize);
-
-    //Serial.println(localCurrentStepSize);
 
     if (activeKey == 0)
     {
       keyState = 'R';
       activeKey = TX_Message[2];
       TX_Message[0] = keyState;
-      TX_Message[1] = octave;
+      TX_Message[1] = localOctave;
       TX_Message[2] = activeKey;
       TX_Message[3] = position;
     }
@@ -281,17 +282,15 @@ void scanKeysTask(void *pvParameters)
     {
       keyState = 'P';
       TX_Message[0] = keyState;
-      TX_Message[1] = octave;
+      TX_Message[1] = localOctave;
       TX_Message[2] = activeKey;
       TX_Message[3] = position;
     }
 
     // Sendign CAN frame
     xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
-
-    xSemaphoreGive(keyArrayMutex);
-    // Serial.println(keyArray[0]);
-    __atomic_store_n(&currentStepSize, localCurrentStepSize, __ATOMIC_RELAXED);
+    __atomic_store_n(&idxKey, localIdxKey, __ATOMIC_RELAXED);
+    __atomic_store_n(&octave, localOctave, __ATOMIC_RELAXED);
   }
 }
 
@@ -334,11 +333,11 @@ void decodeTask(void *pvParameters)
     xQueueReceive(msgInQ, RX_Message_local, portMAX_DELAY);
     if ((char)RX_Message_local[0] == 'P')
     {
-      localCurrentStepSize = (stepSizes[RX_Message_local[2]]);
+      __atomic_store_n(&idxKey, RX_Message_local[2], __ATOMIC_RELAXED);
     }
     else if ((char)RX_Message_local[0] == 'R')
     {
-      localCurrentStepSize = currentStepSize;
+      __atomic_store_n(&idxKey, idxKey, __ATOMIC_RELAXED);
     }
     else if ((char)RX_Message_local[0] == 'H')  //Decode position message
     {
@@ -391,7 +390,7 @@ void setup()
   genIDHash();
 
   // Initialise CAN Hardware
-  CAN_Init(false); // CAN_Init(true);
+  CAN_Init(true); // CAN_Init(true);
   setCANFilter(0x123, 0x7ff);
   CAN_RegisterRX_ISR(CAN_RX_ISR);
   CAN_RegisterTX_ISR(CAN_TX_ISR);
@@ -461,8 +460,6 @@ void setup()
   keyArrayMutex = xSemaphoreCreateMutex();
   RX_MessageMutex = xSemaphoreCreateMutex();
   CAN_TX_Semaphore = xSemaphoreCreateCounting(3, 3);
-  // positionMutex = xSemaphoreCreateMutex();
-  // activeMutex = xSemaphoreCreateMutex();
 
   vTaskStartScheduler();
 }
