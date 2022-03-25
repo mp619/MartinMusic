@@ -1,11 +1,12 @@
 
-Sam Taylor, 01705109
+Authors:
+- Sam Taylor, 01705109
 
-Martin Prusa, 01705109 
+- Martin Prusa, 01705109 
 
-Matilde Piccoli, 01764158
+- Matilde Piccoli, 01764158
 
-Salman Dhaif, 01722410
+- Salman Dhaif, 01722410
 
 # Introduction
 
@@ -88,30 +89,30 @@ inter-dependencies to avoid deadlocking
 | <b>Fig.1 - Dependancy FlowChart</b>|
 
 When it comes to data shared between concurrent systems, there are
-multiple risks: the data is modified by multiple tasks at the same time
+multiple risks, such as: the data is modified by multiple tasks at the same time
 and the first change is overwritten; the data should be modify by a task
-but is blocked by another task with lower priority; \... .\
+but is blocked by another task with lower priority.
 The following analysis aims to assure that the data exchange in our code
 is thread-safe, by using features such as Mutex and Semaphores, Queues,
-atomic access and critical sections
+atomic access and critical sections.
 (Tab.1)
 
 | **Shared Resource** | **Threads/ ISR and type of access**                   | **Strategy to avoid data corruption** |
 |-----------------------|------------------------------------------------------------------|-----------------------------------|
 | KeyArray              | ScanKey (write), displayUpdate (read)                            | Mutex, Semaphore                  |
-| idxKey                | ScanKey (write), displayUpdate (read)                            | ?add Mutex?                       |
-| RXmessage             | CAN_RX_ISR (write), decode (read)  | queue                             |
+| idxKey                | ScanKey (write), displayUpdate (read from local)                 | atomic acces                      |
+| RXmessage             | CAN_RX_ISR (write), decode (read)                                | queue                             |
 |                       | decode (write to local)                                          | Mutex, atomic access              |
 |                       | displayUpdate (read)                                             | Mutex, Semaphore                  |
-| TXmessage             | ScanKey (write), CAN_TX_ISR (read) | Queue                             |
-| position              | scanKey (write), (read)                                          | atomic access                     |
-|                       | sample_ISR, display (read)                        | mutex (to do?)                    |
-| west, est             | scanKey (write)                                                  | atomic access                     |
-|                       |                                                                  | displayUpdate (read)              | mutex (to do?) |
+| TXmessage             | ScanKey (write), CAN_TX_ISR (read)                               | Queue                             |
+| position              | scanKey (write), sample_ISR(read)                                | atomic access                     |
+|                       | display (read frmo local)                                        | atomic access                     |
+| west, est             | scanKey (write), displayUpdate (read from local)                 | atomic access                     |
 | middle                | decode (write), scanKey (read)                                   | atomic access                     |
-| octave                | sampleISR (read), scanKey (write to local),                      |                                   |
-|                       |                                                                  | scanKey (write)                   | atomic access  |
-| CurrentMode           | scanKey (write), display (read)                                  |                                   |
+| octave                | sampleISR (read), scanKey (write to local),                      | atomic access                     |
+| CurrentMode           | scanKey (write), display (read from local)                       | atomic access                     |
+| count_knob            | scanKey (write), display (read from local)                       | atomic access                     |
+|-----------------------|------------------------------------------------------------------|-----------------------------------|
 | |<b>Tab.1 - Shared resourses and protection</b>|
 
 # Timing Analysis
