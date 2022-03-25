@@ -55,12 +55,13 @@ class Display
                 north = 40;
                 south = 53;
                 centre = 63; 
+                west = 5;
 
                 print_type = false;               
             }
         }
         
-        void print(const char *key, int _vol, int _oct, int _wave)
+        void print(const char *key, int _vol, int _oct, int _wave ,bool _CurrentMode)
         {
             if(print_type)
             {
@@ -110,6 +111,15 @@ class Display
                 {
                     u8g2.print("Sine");
                 }
+
+                u8g2.setCursor(west, y_1);
+                if(_CurrentMode == true){
+                    u8g2.print("Single");
+                }
+                else{
+                    u8g2.print("Multi");
+                }
+                
             }
             else 
             {
@@ -124,7 +134,15 @@ class Display
                 //Print Position
                 u8g2.setCursor(south, y_3);
                 u8g2.print("Pos: ");
-                u8g2.print(position);                
+                u8g2.print(position);  
+
+                u8g2.setCursor(west, y_1);
+                if(_CurrentMode == true){
+                    u8g2.print("Single");
+                }
+                else{
+                    u8g2.print("Multi");
+                }              
             }
         }
 };

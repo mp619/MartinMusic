@@ -43,17 +43,13 @@ Knobs knob2(2); // octave
 Knobs knob3(3); // volume
 Knobs knob1(1); // waveform
 
-// Phase step sizes
-const int32_t stepSizes[13] = {0, 51076057, 54113197, 57330936, 60740010,
-                               64351799, 68178356, 72232452, 76527617,
-                               81078186, 85899346, 91007187, 96418756};
-
 const static char *NOTES[13] = {" ", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
 // keyMatrix
 volatile uint8_t keyArray[7];
 volatile int idxKey;
 volatile int octave;
+volatile bool CurrentMode = true;
 
 // Handshake
 volatile bool _west;
@@ -135,6 +131,7 @@ void handshake(void){
   TX_Message_H[3] = ID_hash >> 8;
   TX_Message_H[4] = ID_hash;
   TX_Message_H[5] = position; 
+
   xQueueSend(msgOutQ, TX_Message_H, portMAX_DELAY);
 }
 
@@ -187,6 +184,13 @@ void CAN_RX_ISR(void)
   xQueueSendFromISR(msgInQ, RX_Message_ISR, NULL);
 }
 
+bool readKnobPress()
+{
+    setOutMuxBit(0x06, true);
+    uint8_t value = (digitalRead(C0_PIN)) ;
+    return  value;
+}
+
 void scanKeysTask(void *pvParameters)
 {
   uint8_t TX_Message[8] = {0};
@@ -198,7 +202,6 @@ void scanKeysTask(void *pvParameters)
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
     // ReadCol
     setOutMuxBit(0x01, true);
-    int32_t localCurrentStepSize = 0;
     int localIdxKey = 0;
 
     xSemaphoreTake(keyArrayMutex, portMAX_DELAY);
@@ -226,6 +229,12 @@ void scanKeysTask(void *pvParameters)
 
     xSemaphoreGive(keyArrayMutex);
 
+    //Get knob button
+    uint8_t buttonActive = readKnobPress();
+    if(buttonActive == 0){
+    CurrentMode = !CurrentMode ;
+    }
+
     //Poll for position
     bool west_local;
     bool east_local;
@@ -250,7 +259,7 @@ void scanKeysTask(void *pvParameters)
     {
       __atomic_store_n(&position, middle ? 2 : 1, __ATOMIC_RELAXED);
     }
-      
+
     __atomic_store_n(&_west, west_local, __ATOMIC_RELAXED);
     __atomic_store_n(&_east, east_local, __ATOMIC_RELAXED);
 
@@ -287,6 +296,9 @@ void scanKeysTask(void *pvParameters)
       TX_Message[3] = position;
     }
 
+
+
+
     // Sendign CAN frame
     xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
     __atomic_store_n(&idxKey, localIdxKey, __ATOMIC_RELAXED);
@@ -308,11 +320,11 @@ void displayUpdateTask(void *pvParameters)
 
     //Master 
     if(position == 0){ 
-      displayMaster.print(NOTES[idxKey], knob3.get_count(), knob2.get_count(), knob1.get_count());
+      displayMaster.print(NOTES[idxKey], knob3.get_count(), knob2.get_count(), knob1.get_count(),CurrentMode);
     }
     else 
     {
-      displaySlave.print(NOTES[idxKey], knob3.get_count(), knob2.get_count(), knob1.get_count());    
+      displaySlave.print(NOTES[idxKey], knob3.get_count(), knob2.get_count(), knob1.get_count(),CurrentMode);    
     }
     //u8g2.drawStr(2, 10, "Music Synthesiser!");
     u8g2.drawFrame(2,1,126,31);
@@ -324,7 +336,6 @@ void displayUpdateTask(void *pvParameters)
 
 void decodeTask(void *pvParameters)
 {
-  int32_t localCurrentStepSize = 0;
   int8_t misses = 0;  //Checks how many times middle CAN has been missed
   while (true)
   {
@@ -337,7 +348,7 @@ void decodeTask(void *pvParameters)
     }
     else if ((char)RX_Message_local[0] == 'R')
     {
-      __atomic_store_n(&idxKey, idxKey, __ATOMIC_RELAXED);
+      //__atomic_store_n(&idxKey, idxKey, __ATOMIC_RELAXED);
     }
     else if ((char)RX_Message_local[0] == 'H')  //Decode position message
     {
@@ -390,7 +401,7 @@ void setup()
   genIDHash();
 
   // Initialise CAN Hardware
-  CAN_Init(true); // CAN_Init(true);
+  CAN_Init(false); // CAN_Init(true);
   setCANFilter(0x123, 0x7ff);
   CAN_RegisterRX_ISR(CAN_RX_ISR);
   CAN_RegisterTX_ISR(CAN_TX_ISR);
@@ -455,7 +466,6 @@ void setup()
 
   // Initialise UART
   Serial.begin(9600);
-  Serial.println("Hello World");
 
   keyArrayMutex = xSemaphoreCreateMutex();
   RX_MessageMutex = xSemaphoreCreateMutex();
