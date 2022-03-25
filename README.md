@@ -39,7 +39,7 @@ Our team has performed extensive resource and real time system analysis to ensur
 - For editing and flashing - VS Code with Platformio extension is required
 - Clone all contents
 - Please follow this [guide](https://hank.feild.org/courses/common/cpp-compiler.html) to install a c++ compiler for all systems
-- Goto Platformio Home using [home](/doc/resources/Home.PNG) on bottom left of VS code and install U8g2 display driver library
+- Goto Platformio Home using ![home](/doc/resources/Home.PNG) on bottom left of VS code and install U8g2 display driver library
 - Build \src folder using ![BuildIcon](/doc/resources/Build.PNG) on bottom left
 - Connect STM32 to PC using micro USB port
 - Upload onto STM32 using ![UploadIcon](/doc/resources/Upload.PNG) on bottom left
