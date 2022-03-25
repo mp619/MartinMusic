@@ -140,7 +140,7 @@ Initiation time &tau;<sub>i</sub> is defined as the time between initiations of 
 U = &sum;<sub>i</sub> &lceil;T<sub>i</sub> &#8260; &tau;<sub>i</sub> &rceil;
 </center>
 
-We get our CPU utilization U .Execution time , Initiation Interval. We calculate these for every ISR and Thread. Giving us the ability to establish correct priorities and timing. The initiation intervals used were defined in Lab documentation.
+We get our CPU utilization U .Execution time , Initiation Interval. We calculate these for every ISR and Thread. Giving us the ability to establish correct priorities and timing. The initiation intervals used were defined in the Lab documentation.
 
 | Task | Priority | Initiation Interval (&tau;<sub>i</sub>) [ms] | Execution Time (T<sub>i</sub>) [ms]| &lceil;<sup>&tau;<sub>n</sub></sup>&#8260;<sub>&tau;<sub>i</sub></sub>&rceil; T<sub>i</sub> [ms]| CPU Utilization [%]|
 |-------------------|-----|-----------|---------|---------|--------|
