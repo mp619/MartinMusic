@@ -47,5 +47,4 @@ Our team has performed extensive resource and real time system analysis to ensur
 - [Video](https://web.microsoftstream.com/video/5c28ea65-837a-4dd1-8151-f86ed1e84635)
 - [Source Code](https://github.com/mp619/MartinMusic/tree/master/src)
 
-## Intro to video
-- ![Intro](/doc/resources/ViedoStart.gif)
+![Intro](/doc/resources/ViedoStart.gif)
