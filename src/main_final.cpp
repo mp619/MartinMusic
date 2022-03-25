@@ -474,7 +474,7 @@ void setup()
               "displayUpdate",       /* Text name for the task */
               256,                   /* Stack size in words, not bytes */
               NULL,                  /* Parameter passed into the task */
-              2,                     /* Task priority */
+              1,                     /* Task priority */
               &displayUpdateHandle); /* Pointer to store the task handle */
 
   TaskHandle_t decodeHandle = NULL;
@@ -490,7 +490,7 @@ void setup()
               "CAN_TX",    /* Text name for the task */
               32,          /* Stack size in words, not bytes */
               NULL,        /* Parameter passed into the task */
-              1,           /* Task priority */
+              2,           /* Task priority */
               &CAN_TX_Handle);
 
   // Initialise UART
