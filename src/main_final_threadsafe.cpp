@@ -42,7 +42,7 @@ const int HKOE_BIT = 6;
 Knobs knob3(3); // volume
 Knobs knob2(2); // octave
 Knobs knob1(1); // waveform
-Knobs knob0(0); //decay
+Knobs knob0(0); // decay
 
 const static char *NOTES[13] = {" ", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"};
 
@@ -81,15 +81,16 @@ SemaphoreHandle_t keyArrayMutex;
 SemaphoreHandle_t RX_MessageMutex;
 SemaphoreHandle_t CAN_TX_Semaphore;
 
-//Get unique hash from board
-void genIDHash(){
-// concatenate ID words
-std::string ID_w = std::to_string(HAL_GetUIDw0());
-ID_w += std::to_string(HAL_GetUIDw1());
-ID_w += std::to_string(HAL_GetUIDw2());
-// generate hash
-std::hash<std::string> _hash;
-ID_hash = _hash(ID_w);
+// Get unique hash from board
+void genIDHash()
+{
+  // concatenate ID words
+  std::string ID_w = std::to_string(HAL_GetUIDw0());
+  ID_w += std::to_string(HAL_GetUIDw1());
+  ID_w += std::to_string(HAL_GetUIDw2());
+  // generate hash
+  std::hash<std::string> _hash;
+  ID_hash = _hash(ID_w);
 }
 
 // Function to set outputs using key matrix
@@ -105,7 +106,7 @@ void setOutMuxBit(const uint8_t bitIdx, const bool value)
   digitalWrite(REN_PIN, LOW);
 }
 
-//Handshake function
+// Handshake function
 bool setOutHandshake(uint8_t bitIdx, const bool value)
 {
   bool detect = 1;
@@ -117,12 +118,13 @@ bool setOutHandshake(uint8_t bitIdx, const bool value)
   digitalWrite(REN_PIN, HIGH);
   delayMicroseconds(10);
   detect = detect & digitalRead(C3_PIN);
-  digitalWrite(REN_PIN, LOW);  
+  digitalWrite(REN_PIN, LOW);
   return detect;
 }
 
-//Send handshake CAN
-void handshake(void){
+// Send handshake CAN
+void handshake(void)
+{
 
   // Transmitt handshaking signal of position 0 onto CAN bus
   uint8_t TX_Message_H[8] = {0};
@@ -131,9 +133,12 @@ void handshake(void){
   TX_Message_H[2] = ID_hash >> 16;
   TX_Message_H[3] = ID_hash >> 8;
   TX_Message_H[4] = ID_hash;
-  TX_Message_H[5] = position; 
+  TX_Message_H[5] = position;
 
-  if(CurrentMode == false){xQueueSend(msgOutQ, TX_Message_H, portMAX_DELAY);}
+  if (CurrentMode == false)
+  {
+    xQueueSend(msgOutQ, TX_Message_H, portMAX_DELAY);
+  }
 }
 
 // Read Matrix
@@ -147,18 +152,18 @@ uint8_t readCols(int row)
 
 int32_t chooseWave(int wave)
 {
-  switch(wave)
+  switch (wave)
   {
-    case 0:
-      return tri.makeVout(idxKey, octave);
-    case 1:
-      return squ.makeVout(idxKey, octave);
-    case 2:
-      return saw.makeVout(idxKey, octave);
-    case 3:
-      return sine.makeVout(idxKey, octave);
-    default:
-      return sine.makeVout(idxKey, octave);
+  case 0:
+    return tri.makeVout(idxKey, octave);
+  case 1:
+    return squ.makeVout(idxKey, octave);
+  case 2:
+    return saw.makeVout(idxKey, octave);
+  case 3:
+    return sine.makeVout(idxKey, octave);
+  default:
+    return sine.makeVout(idxKey, octave);
   }
 }
 
@@ -172,12 +177,12 @@ void sampleISR()
   }
   Vout = Vout >> (8 - knob3.get_count() / 2);
 
-  
-  // Add decay effect 
-  static int32_t _time = 0; 
+  // Add decay effect
+  static int32_t _time = 0;
   static int Vout_decay = 0;
 
-  if(Vout == 0){
+  if (Vout == 0)
+  {
     _time = 0;
   }
 
@@ -187,9 +192,9 @@ void sampleISR()
 
   double Vout_double = Vout * decay;
   Vout_decay = Vout_double;
-  Vout = Vout_decay; 
+  Vout = Vout_decay;
 
-  if(position == 0)
+  if (position == 0)
   {
     analogWrite(OUTR_PIN, Vout);
   }
@@ -205,9 +210,9 @@ void CAN_RX_ISR(void)
 
 bool readKnobPress()
 {
-    setOutMuxBit(0x06, true);
-    uint8_t value = (digitalRead(C0_PIN)) ;
-    return  value;
+  setOutMuxBit(0x06, true);
+  uint8_t value = (digitalRead(C0_PIN));
+  return value;
 }
 
 void scanKeysTask(void *pvParameters)
@@ -249,50 +254,45 @@ void scanKeysTask(void *pvParameters)
 
     xSemaphoreGive(keyArrayMutex);
 
-    //Get knob button
+    // Get knob button
     uint8_t buttonActive = readKnobPress();
-    if(buttonActive == 0){
-    CurrentMode = !CurrentMode ;
+    if (buttonActive == 0)
+    {
+      CurrentMode = !CurrentMode;
     }
 
-    //Poll for position
-    bool west_local;
-    bool east_local;
-  
-    west_local = setOutHandshake(5,0x78);
-    east_local = setOutHandshake(6,0x78);
+    // Poll for position
+    _west = setOutHandshake(5, 0x78);
+    _east = setOutHandshake(6, 0x78);
 
-    if(west_local & !east_local)  //Most westerly
-    { 
-      __atomic_store_n(&position, 0, __ATOMIC_RELAXED);  
-    } 
-    else if (west_local & east_local) //Solitary
-    { 
-      __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
-    } 
-    else if (!west_local & !east_local) //Middle
+    if (_west & !_east) // Most westerly
     {
-      handshake(); //Send out CAN that there is a middle
+      __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
+    }
+    else if (_west & _east) // Solitary
+    {
+      __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
+    }
+    else if (!_west & !_east) // Middle
+    {
+      handshake(); // Send out CAN that there is a middle
       __atomic_store_n(&position, 1, __ATOMIC_RELAXED);
-    } 
-    else if (!west_local & east_local)  //Most easterly point 
+    }
+    else if (!_west & _east) // Most easterly point
     {
       __atomic_store_n(&position, middle ? 2 : 1, __ATOMIC_RELAXED);
     }
-
-    __atomic_store_n(&_west, west_local, __ATOMIC_RELAXED);
-    __atomic_store_n(&_east, east_local, __ATOMIC_RELAXED);
 
     char keyState;
     uint8_t activeKey = localIdxKey;
     uint8_t localOctave;
     xSemaphoreTake(RX_MessageMutex, portMAX_DELAY);
-    if (RX_Message[0] == 'P') //Check if recieved is pressed, then use position to edit octave
+    if (RX_Message[0] == 'P') // Check if recieved is pressed, then use position to edit octave
     {
       localIdxKey = RX_Message[2];
       localOctave = knob2.get_count() + RX_Message[3];
-    } 
-    else //Local octave selection (For master)
+    }
+    else // Local octave selection (For master)
     {
       localOctave = knob2.get_count();
     }
@@ -316,11 +316,11 @@ void scanKeysTask(void *pvParameters)
       TX_Message[3] = position;
     }
 
-
-
-
     // Sendign CAN frame
-    if(CurrentMode == false) {xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);}
+    if (CurrentMode == false)
+    {
+      xQueueSend(msgOutQ, TX_Message, portMAX_DELAY);
+    }
     __atomic_store_n(&idxKey, localIdxKey, __ATOMIC_RELAXED);
     __atomic_store_n(&octave, localOctave, __ATOMIC_RELAXED);
   }
@@ -330,25 +330,30 @@ void displayUpdateTask(void *pvParameters)
 {
   const TickType_t xFrequency = 100 / portTICK_PERIOD_MS;
   TickType_t xLastWakeTime = xTaskGetTickCount();
+  int idxKey_local;
+  
   while (1)
   {
     vTaskDelayUntil(&xLastWakeTime, xFrequency);
 
-    //Make frame
-    u8g2.clearBuffer();                 // clear the internal memory
+    __atomic_store_n(&idxKey_local, idxKey, __ATOMIC_RELAXED);
+
+    // Make frame
+    u8g2.clearBuffer();             // clear the internal memory
     u8g2.setFont(u8g2_font_5x7_tr); // choose a suitable font
 
-    //Master 
-    if(position == 0){ 
-      displayMaster.print(NOTES[idxKey], knob3.get_count(), knob2.get_count(), knob1.get_count(),CurrentMode);
-    }
-    else 
+    // Master
+    if (position == 0)
     {
-      displaySlave.print(NOTES[idxKey], knob3.get_count(), knob2.get_count(), knob1.get_count(),CurrentMode);    
+      displayMaster.print(NOTES[idxKey_local], knob3.get_count(), knob2.get_count(), knob1.get_count());
     }
-    //u8g2.drawStr(2, 10, "Music Synthesiser!");
-    u8g2.drawFrame(2,1,126,31);
-    u8g2.sendBuffer(); // transfer internal memory to the display 
+    else
+    {
+      displaySlave.print(NOTES[idxKey_local], knob3.get_count(), knob2.get_count(), knob1.get_count());
+    }
+    // u8g2.drawStr(2, 10, "Music Synthesiser!");
+    u8g2.drawFrame(2, 1, 126, 31);
+    u8g2.sendBuffer(); // transfer internal memory to the display
     // Toggle LED
     digitalToggle(LED_BUILTIN);
   }
@@ -356,7 +361,7 @@ void displayUpdateTask(void *pvParameters)
 
 void decodeTask(void *pvParameters)
 {
-  int8_t misses = 0;  //Checks how many times middle CAN has been missed
+  int8_t misses = 0; // Checks how many times middle CAN has been missed
   while (true)
   {
     uint8_t RX_Message_local[8];
@@ -370,21 +375,21 @@ void decodeTask(void *pvParameters)
     {
       __atomic_store_n(&idxKey, idxKey, __ATOMIC_RELAXED);
     }
-    else if ((char)RX_Message_local[0] == 'H')  //Decode position message
+    else if ((char)RX_Message_local[0] == 'H') // Decode position message
     {
-      ID_Local = ID_Local | (RX_Message_local[1] << 24) | (RX_Message_local[2] << 16) | (RX_Message_local[3] << 8) | RX_Message_local[4];    
+      ID_Local = ID_Local | (RX_Message_local[1] << 24) | (RX_Message_local[2] << 16) | (RX_Message_local[3] << 8) | RX_Message_local[4];
       __atomic_store_n(&middle, true, __ATOMIC_RELAXED);
-      misses = 0;  //Reset Counter
+      misses = 0; // Reset Counter
     }
-    if(misses > 5){
-      __atomic_store_n(&middle, false, __ATOMIC_RELAXED); //No longer a middle keyboard
+    if (misses > 5)
+    {
+      __atomic_store_n(&middle, false, __ATOMIC_RELAXED); // No longer a middle keyboard
     }
     misses++;
     for (int i = 0; i < 8; i++)
     {
       __atomic_store_n(&RX_Message[i], RX_Message_local[i], __ATOMIC_RELAXED);
     }
-
   }
 }
 
@@ -457,7 +462,7 @@ void setup()
               "scanKeys",       /* Text name for the task */
               64,               /* Stack size in words, not bytes */
               NULL,             /* Parameter passed into the task */
-              2,                /* Task priority */
+              4,                /* Task priority */
               &scanKeysHandle); /* Pointer to store the task handle */
 
   TaskHandle_t displayUpdateHandle = NULL;
@@ -465,7 +470,7 @@ void setup()
               "displayUpdate",       /* Text name for the task */
               256,                   /* Stack size in words, not bytes */
               NULL,                  /* Parameter passed into the task */
-              1,                     /* Task priority */
+              2,                     /* Task priority */
               &displayUpdateHandle); /* Pointer to store the task handle */
 
   TaskHandle_t decodeHandle = NULL;
@@ -473,7 +478,7 @@ void setup()
               "decodeTask", /* Text name for the task */
               32,           /* Stack size in words, not bytes */
               NULL,         /* Parameter passed into the task */
-              4,            /* Task priority */
+              3,            /* Task priority */
               &decodeHandle);
 
   TaskHandle_t CAN_TX_Handle = NULL;
@@ -481,7 +486,7 @@ void setup()
               "CAN_TX",    /* Text name for the task */
               32,          /* Stack size in words, not bytes */
               NULL,        /* Parameter passed into the task */
-              3,           /* Task priority */
+              1,           /* Task priority */
               &CAN_TX_Handle);
 
   // Initialise UART

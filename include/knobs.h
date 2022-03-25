@@ -39,6 +39,8 @@ public:
             int default_wave = 1;
             count_knob = default_wave;
         }
+
+
     }
 
     uint8_t readKnob(uint8_t key)
@@ -130,10 +132,12 @@ public:
 
     int8_t get_count()
     {
-        return count_knob;
+        int countknob_local;
+         __atomic_store_n(&countknob_local, count_knob, __ATOMIC_RELAXED);
+        return countknob_local;
     }
 
-        int32_t get_wave(int32_t wave_in, int32_t currentStepSize)
+    int32_t get_wave(int32_t wave_in, int32_t currentStepSize)
     {
         static int32_t phaseAcc = 0;
         static int32_t phaseAcc_new = 0;
