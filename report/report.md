@@ -50,7 +50,7 @@ include:
 
 # Tasks and code structure
 
-Our system consists of four threads and three interrupts (in order of
+Continouing with the idea of a maintainable code we have implemented separate threads for each task. Our system consists of four threads and three interrupts (in order of
 priority):
 
 -   **sampleISR**: interrupt responsible for updating Vout, the voltage
@@ -74,11 +74,7 @@ priority):
 
 -   **displayUpdate**: thread resbonsible for the generation of the LED
     display output
-
 \
-With the idea of a maintainable code, we have use classes for the
-decoding of the knobs inputs and output waveform generation, and
-separate threads for each task.
 
 ## Shared resources and Dependencies
 
