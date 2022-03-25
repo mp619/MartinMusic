@@ -94,7 +94,10 @@ but is blocked by another task with lower priority.
 The following analysis aims to assure that the data exchange in our code
 is thread-safe, by using features such as Mutex and Semaphores, Queues,
 atomic access and critical sections.
-Tab.1 shows a detailed analysis of all the global and shared resources between threads and interrupts and how, for each of them, an apporioiate strategy has been taken to avoid both deadlock and data corruption. In general, when a thread 1 (or ISR) with high priority writes a variable and thread 2 with lower priority reads it, our strategy is to write the global variable and then create a local version for thread 2 via atomic access so that if the reading is interrupted by the high priority one, the operation is not corrupted by the modification of the global variable mid-way through the reading. Alternatively, a mutex is used in thread 1 so that the variable is not read/written by thread 2 whilst the writing operation is concurrently happening in thread 1. On the other side, if a thread 1 (or ISR) with high priority has to read a variable written by thread 2 (lower priority), a atomic access is used to make sure that the writing is not interrupted by the high priority mid-way, which would lead to corrupted data. In this case, the atomic access was chosen as the most suitable way to prevent data corruption as this is limits the blocking time and, as the time analysis section highlights, enable the high priority thread to still meet the deadline.  
+
+Tab.1 shows a detailed analysis of all the global and shared resources between threads and interrupts and how, for each of them, an apporioiate strategy has been taken to avoid both deadlock and data corruption. In general, when a thread 1 (or ISR) with high priority writes a variable and thread 2 with lower priority reads it, our strategy is to write the global variable and then create a local version for thread 2 via atomic access so that if the reading is interrupted by the high priority one, the operation is not corrupted by the modification of the global variable mid-way through the reading. Alternatively, a mutex is used in thread 1 so that the variable is not read/written by thread 2 whilst the writing operation is concurrently happening in thread 1. 
+
+On the other side, if a thread 1 (or ISR) with high priority has to read a variable written by thread 2 (lower priority), a atomic access is used to make sure that the writing is not interrupted by the high priority mid-way, which would lead to corrupted data. In this case, the atomic access was chosen as the most suitable way to prevent data corruption as this is limits the blocking time and, as the time analysis section highlights, enable the high priority thread to still meet the deadline.  
 
 | **Shared Resource** | **Threads/ ISR and type of access**                   | **Strategy to avoid data corruption** |
 |-----------------------|------------------------------------------------------------------|-----------------------------------|
@@ -112,6 +115,7 @@ Tab.1 shows a detailed analysis of all the global and shared resources between t
 | CurrentMode           | scanKey (write), display (read from local)                       | atomic access                     |
 | count_knob            | scanKey (write), display (read from local)                       | atomic access                     |
 |<b>Tab.1 - Shared resourses and protection</b>|
+
 
 As for Fig.1 and Tab.1, the final anlysis of both dependencies and data exchange has ultimately given the following results:
 - no deadlocks are present as the shared data is never blocked by multiple tasks at the same time;
