@@ -1,4 +1,3 @@
-
 #include <Arduino.h>
 #include <U8g2lib.h>
 #include <string>
@@ -132,5 +131,63 @@ public:
     int8_t get_count()
     {
         return count_knob;
+    }
+
+        int32_t get_wave(int32_t wave_in, int32_t currentStepSize)
+    {
+        static int32_t phaseAcc = 0;
+        static int32_t phaseAcc_new = 0;
+        static int32_t up = 1;
+        int32_t Total = 0;
+            // sawtooth
+        if (wave_in == 0 | wave_in == 1 | wave_in == 2)
+        {
+            phaseAcc += currentStepSize;
+            return phaseAcc >> 24;
+        }
+        //  square
+        if (wave_in == 3 | wave_in == 4)
+        {
+            phaseAcc += currentStepSize;
+            if (phaseAcc > 1073741824)
+            {
+                return 127;
+            }
+            else
+            {
+                return -128;
+            }
+        }
+        // triangular
+        else if (wave_in == 5 | wave_in == 6)
+        {
+            if (up == 1)
+            {
+                phaseAcc_new += currentStepSize * 2;
+            }
+            else if (up == 0)
+            {
+                phaseAcc_new -= currentStepSize * 2;
+            }
+            if (phaseAcc_new < phaseAcc & up == 1)
+            {
+                up = 0;
+            }
+            else if (phaseAcc_new > phaseAcc & up == 0)
+            {
+                up = 1;
+            }
+            if (up == 1)
+            {
+                phaseAcc += currentStepSize * 2;
+            }
+            else if (up == 0)
+            {
+                phaseAcc -= currentStepSize * 2;
+            }
+        phaseAcc_new = phaseAcc;
+        return phaseAcc >> 24;
+
+        }
     }
 };
