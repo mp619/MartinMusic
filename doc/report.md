@@ -99,7 +99,7 @@ On the other side, if a thread 1 (or ISR) with high priority has to read a varia
 | **Shared Resource** | **Threads/ ISR and type of access**                   | **Strategy to avoid data corruption** |
 |-----------------------|------------------------------------------------------------------|-----------------------------------|
 | KeyArray              | ScanKey (write), displayUpdate (read)                            | Mutex, Semaphore                  |
-| idxKey                | ScanKey (write), displayUpdate (read from local)                 | atomic accesa                     |
+| idxKey                | ScanKey (write), displayUpdate (read from local)                 | atomic access                     |
 | RXmessage             | CAN_RX_ISR (write), decode (read)                                | queue                             |
 |                       | decode (write to local)                                          | Mutex, atomic access              |
 |                       | displayUpdate (read)                                             | Mutex, Semaphore                  |
