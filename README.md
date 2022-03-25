@@ -21,3 +21,15 @@ Our team has performed extensive resource and real time system analysis to ensur
 ├───test                      # Timing analysis files
 ├───platformio.ini                   # Platformio IDE init file
 ```
+## Requirements
+
+- [STM32L432KC MCU](https://www.st.com/en/evaluation-tools/nucleo-l432kc.html) 
+- Piano attachement
+- C++ Libraries
+  - Arduino.h
+  - U8g2lib.h
+  - STM32FreeRTOS.h
+  - ES_CAN.h
+  - local - knobs.h
+  - local - display.h
+  - local - wave.h
