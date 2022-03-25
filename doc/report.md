@@ -18,7 +18,8 @@ in the specification, and the following advanced features:
 
 -   Advanced Tone Waveform
 
--   Handshaking with up to 3 boards
+-   Auto detection and Handshaking
+
 
 # Task Algorithms and Dependencies
 
