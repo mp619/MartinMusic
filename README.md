@@ -18,7 +18,6 @@ Our team has performed extensive resource and real time system analysis to ensur
 ├───lib                      # Provided libraries
 ├───src                      # Main file to be uploaded onto synthesizer
 ├───prev_versions             # Previous versions of the main file
-├───test                 
-│   └───Timing           # Timing analysis files
+├───test                      # Timing analysis files
 ├───platformio.ini                   # Platformio IDE init file
 ```
