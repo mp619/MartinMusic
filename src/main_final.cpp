@@ -207,6 +207,31 @@ void CAN_RX_ISR(void)
   xQueueSendFromISR(msgInQ, RX_Message_ISR, NULL);
 }
 
+void findPosition()
+{
+  // Poll for position
+  _west = setOutHandshake(5, 0x78);
+  _east = setOutHandshake(6, 0x78);
+
+  if (_west & !_east) // Most westerly
+  {
+    __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
+  }
+  else if (_west & _east) // Solitary
+  {
+    __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
+  }
+  else if (!_west & !_east) // Middle
+  {
+    handshake(); // Send out CAN that there is a middle
+    __atomic_store_n(&position, 1, __ATOMIC_RELAXED);
+  }
+  else if (!_west & _east) // Most easterly point
+  {
+    __atomic_store_n(&position, middle ? 2 : 1, __ATOMIC_RELAXED);
+  }
+}
+
 // Reads knob press for picking single or multi board
 bool readKnobPress()
 {
@@ -262,27 +287,7 @@ void scanKeysTask(void *pvParameters)
       CurrentMode = !CurrentMode;
     }
 
-    // Poll for position
-    _west = setOutHandshake(5, 0x78);
-    _east = setOutHandshake(6, 0x78);
-
-    if (_west & !_east) // Most westerly
-    {
-      __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
-    }
-    else if (_west & _east) // Solitary
-    {
-      __atomic_store_n(&position, 0, __ATOMIC_RELAXED);
-    }
-    else if (!_west & !_east) // Middle
-    {
-      handshake(); // Send out CAN that there is a middle
-      __atomic_store_n(&position, 1, __ATOMIC_RELAXED);
-    }
-    else if (!_west & _east) // Most easterly point
-    {
-      __atomic_store_n(&position, middle ? 2 : 1, __ATOMIC_RELAXED);
-    }
+    findPosition();  //Get east and west values and from that work out position
 
     //Prepare a message of what key is pressed
     char keyState;
