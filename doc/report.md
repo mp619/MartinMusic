@@ -149,4 +149,5 @@ Given our total latency being the sum of &lceil;<sup>&tau;<sub>n</sub></sup>&#82
 
 
 ## Critical Instant Analysis
-![akt text](resources/tl.PNG)
+|:--:|
+| <b>Fig.2 - Task and ISR Timeline</b>|
