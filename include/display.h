@@ -94,17 +94,21 @@ class Display
 
                 //Wave print
                 u8g2.setCursor(south, y_3);
-                if (_wave > 4)
+                if (_wave == 0)
                 {
                     u8g2.print("Tri");
                 }
-                else if (_wave > 2)
+                else if (_wave  == 1)
                 {
                     u8g2.print("Squ");
                 }
-                else
+                else if (_wave == 2)
                 {
                     u8g2.print("Saw");
+                }
+                else if (_wave > 2)
+                {
+                    u8g2.print("Sine");
                 }
             }
             else 
