@@ -22,9 +22,6 @@ in the specification, and the following advanced features:
 
 -   Auto detection and Handshaking
 
-
-# Task Algorithms and Dependencies
-
 # Classes and Headers
 
 For the purposes of modular design, the main source code uses four main
