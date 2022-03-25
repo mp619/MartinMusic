@@ -39,13 +39,11 @@ include:
     and get the count of each of the knobs. As well, implementations of
     decay functions for Knob 0.
 
-|![Knobs](resources/Knobs.png)|
-|:--:|
-
 -   **Display**: Manages the user interface on the OLED display.
     Includes methods for initialization of the display and printing
     which are configurable to the mode of the module (Transmitter or
-    Receiver).
+    Receiver). This class also allowed us to easilt add display support 
+    for advanced features that were being developed. 
 
 -   **Wave**: Enables the generation of different waveforms. Includes a
     parent Wave class and child classes for each of the waveforms. As
@@ -68,16 +66,16 @@ priority):
     the CAN bus.
 
 -   **decode**: Thread managing the decoding of the information coming
-    from the CAN bus (\...)
+    from the CAN bus.
 
 -   **CANTX**: Thread responsible for the collection of data to be
-    transmitted via CAN (..generating corresponding interrupt\...)
+    transmitted via CAN.
 
--   **ScanKey**: Thread managing the decoding of inputs form the
-    keyboard and knobs
+-   **ScanKey**: Thread managing the decoding of inputs from the
+    keyboard and knobs.
 
--   **displayUpdate**: thread resbonsible for the generation of the LED
-    display output
+-   **displayUpdate**: Thread responsible for the generation of the LED
+    display output. 
 \
 
 ## Shared resources and Dependencies
