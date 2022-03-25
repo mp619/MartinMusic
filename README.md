@@ -28,9 +28,9 @@ Our team has performed extensive resource and real time system analysis to ensur
 - VS Code - [Platformio](https://platformio.org/)
 - C++ Libraries
   - Arduino.h
-  - U8g2lib.h
-  - STM32FreeRTOS.h
   - ES_CAN.h
+  - platformio - [U8g2lib.h](https://www.arduino.cc/reference/en/libraries/u8g2/)
+  - platformio - [STM32FreeRTOS.h](https://www.digikey.co.uk/en/maker/projects/getting-started-with-stm32-introduction-to-freertos/ad275395687e4d85935351e16ec575b1)
   - local - knobs.h
   - local - display.h
   - local - wave.h
