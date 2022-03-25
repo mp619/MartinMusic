@@ -112,8 +112,7 @@ atomic access and critical sections.
 | octave                | sampleISR (read), scanKey (write to local),                      | atomic access                     |
 | CurrentMode           | scanKey (write), display (read from local)                       | atomic access                     |
 | count_knob            | scanKey (write), display (read from local)                       | atomic access                     |
-|-----------------------|------------------------------------------------------------------|-----------------------------------|
-| |<b>Tab.1 - Shared resourses and protection</b>|
+|<b>Tab.1 - Shared resourses and protection</b>|
 
 # Timing Analysis
 
