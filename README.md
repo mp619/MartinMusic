@@ -37,4 +37,11 @@ Our team has performed extensive resource and real time system analysis to ensur
 
 ## Setup
 - For editing and flashing - VS Code with Platformio extension is required
-- 
+- Clone all contents
+- Build \src folder using 
+- Upload onto STM32 using
+
+## Links
+- [Documentation]
+- [Video]
+- [Source Code]
